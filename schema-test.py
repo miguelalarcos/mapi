@@ -170,7 +170,7 @@ class TestSetMethods(unittest.TestCase):
 
         A = Schema(schema_plain)
 
-        value = A.put('a.b.1', {'a': [{'b': 'insert coin'}]}, {'b': 'hello !!'})    
+        value = A.put('a.b.1', {'a': [{'b': 'insert coin'}]}, {'b': 'hello ;)'})    
         self.assertEqual(value, {'b': 'hello :)'})
 
 if __name__ == '__main__':
