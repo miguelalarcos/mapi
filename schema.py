@@ -147,6 +147,8 @@ class Schema:
                 else:
                     raise SetError('no se puede setear, set')
         
+        if type(schema) is list:
+            schema = schema[0]
         if schema.__class__ == Schema:
             set_default = schema.schema.get('__set_default', never)
             keys = [k  for k in schema.schema.keys() if k not in self.kw] #  ['__set_document']]

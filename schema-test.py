@@ -73,6 +73,52 @@ class TestSetMethods(unittest.TestCase):
         value = A.put('a.b', {'a': {}}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
 
+    def test_schema_path_set_object(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {}, {'b': 'hello :)'})    
+        self.assertEqual(value, {'b': 'hello :)'})
+
+    def test_schema_path_set_object_array(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {}, {'b': 'hello :)'})    
+        self.assertEqual(value, {'b': 'hello :)'})
+
     def test_schema_path_set_forbidden_read_only(self):
         schema_plain = {
             'b': {
