@@ -4,6 +4,9 @@ from api import current_user
 class SetError(Exception):
     pass
 
+class ValidationError(Exception):
+    pass
+
 now = lambda *args: time.time()
 identity = lambda x: x
 public = lambda *args: True
@@ -122,10 +125,12 @@ class Schema:
         doc = root_doc
         paths = path.split('.')
         last = paths[-1]
+        
         for key in paths:
             if key.isdigit():
-                key = int(key)   
-                if schema.__class__ == Schema and not schema.schema.get('set', set_default)():
+                key = int(key)
+                schema = schema[0]
+                if schema.__class__ == Schema and not to_set(doc): #schema.schema.get('set', set_default)():
                     raise SetError('no se puede setear, set')
             else:
                 try:
@@ -134,13 +139,9 @@ class Schema:
                     raise Exception('path does not exist')
                 to_set = schema[key].get('set', set_default)
                 schema = schema[key]['type']
-                if type(schema) is list:
-                    schema = schema[0]
-            #doc = doc[key]            
-            if schema.__class__ == Schema and key != last:
+            
+            if (schema.__class__ == Schema or type(schema) is list) and key != last:
                 doc = doc[key]
-                #s = schema.schema.get('set', set_default) 
-                #if s(doc):
                 if to_set(doc):
                     continue
                 else:
@@ -157,16 +158,17 @@ class Schema:
                 if not schema[k].get('set', set_default)():
                     raise SetError('no se puede setear, set')
                 value[k] = schema[k].get('computed', lambda v: v[k])(value)
-                if not schema[k].get('validation', public)(value[k]):
-                    raise SetError('no se puede setear, validation')
+                if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
+                    raise ValidationError('no se puede setear, validation')
             return value
 
         if not to_set(doc):
             raise SetError('no se puede setear, set')
-        if validation(value):
+        
+        if schema == type(value) and validation(value):
             return value
         else:
-            raise Exception('no se puede setear, validation')
+            raise ValidationError('no se puede setear, validation')
 
 if __name__ == '__main__':
     sch = {
