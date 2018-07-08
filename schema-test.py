@@ -21,6 +21,22 @@ class TestSetMethods(unittest.TestCase):
         value = A.put('a', {}, 5)    
         self.assertEqual(value, 5)
 
+    def test_schema_simple_set_computed(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'computed': lambda x: 5
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {}, 3)    
+        self.assertEqual(value, 5)
+
     def test_schema_simple_is_owner(self):
         schema_plain = {
             '__set_document': public, 
@@ -116,6 +132,30 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a.b', {'a': {}}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_computed(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public,
+                'computed': lambda x: 'insert coin'
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a.b', {'a': {}}, 'hello :)')    
+        self.assertEqual(value, 'insert coin')
 
     def test_schema_path_set_is_owner(self):
         schema_plain = {
