@@ -137,9 +137,10 @@ class Schema:
                     raise SetError('no se puede setear, set')
             else:
                 try:
-                    validation = schema[key].get('validation', validation)
+                    schema[key]
                 except KeyError:
                     raise PathError('path does not exist')
+                validation = schema[key].get('validation', validation)
                 to_set = schema[key].get('set', set_default)
                 schema = schema[key]['type']
             
