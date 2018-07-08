@@ -152,11 +152,9 @@ class Schema:
                 except KeyError:
                     raise PathError('path does not exist')
                 
-                #doc['__owners'] = owners
                 if type(schema) is not list:
-                    if to_set(doc):
-                        continue
-                    else:
+                    doc['__owners'] = owners
+                    if not to_set(doc):
                         raise SetError('no se puede setear, set')
         
         if type(schema) is list:
@@ -179,15 +177,15 @@ class Schema:
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
-
-        doc['__owners'] = owners
-        if not to_set(doc):
-            raise SetError('no se puede setear, set')
-        
-        if schema == type(value) and validation(value):
-            return value
         else:
-            raise ValidationError('no se puede setear, validation')
+            doc['__owners'] = owners
+            if not to_set(doc):
+                raise SetError('no se puede setear, set')
+            
+            if schema == type(value) and validation(value):
+                return value
+            else:
+                raise ValidationError('no se puede setear, validation')
 
 if __name__ == '__main__':
     sch = {
