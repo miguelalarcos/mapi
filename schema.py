@@ -7,6 +7,9 @@ class SetError(Exception):
 class ValidationError(Exception):
     pass
 
+class PathError(Exception):
+    pass
+
 now = lambda *args: time.time()
 identity = lambda x: x
 public = lambda *args: True
@@ -136,12 +139,15 @@ class Schema:
                 try:
                     validation = schema[key].get('validation', validation)
                 except KeyError:
-                    raise Exception('path does not exist')
+                    raise PathError('path does not exist')
                 to_set = schema[key].get('set', set_default)
                 schema = schema[key]['type']
             
             if (schema.__class__ == Schema or type(schema) is list) and key != last:
-                doc = doc[key]
+                try:                
+                    doc = doc[key]
+                except KeyError:
+                    raise PathError('path does not exist')
                 if to_set(doc):
                     continue
                 else:
@@ -155,8 +161,11 @@ class Schema:
             for k in keys:
                 try:
                     schema[k]
+                    value[k]
                 except KeyError:
-                    raise Exception('path does not exist')
+                    raise PathError('path does not exist')
+                except TypeError:
+                    raise PathError('path does not exist')
                 if not schema[k].get('set', set_default)():
                     raise SetError('no se puede setear, set')
                 value[k] = schema[k].get('computed', lambda v: v[k])(value)
