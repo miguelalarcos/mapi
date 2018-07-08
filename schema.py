@@ -96,19 +96,20 @@ class Schema:
             raise Exception('keywords not in schema')
 
         for key in missing | intersection:
-            print(schema, key)
             if schema[key]['type'].__class__ == Schema:
                 if document.get(key):
-                    ret[key] = schema[key].post(document[key])
+                    ret[key] = schema[key]['type'].post(document[key])
             elif type(schema[key]['type']) is list:
                 schema = schema[key]['type'][0]
                 ret[key] = [schema.post(k) for k in document[key]]
             elif 'computed' not in schema[key]:
-                validation = schema[key].get('validation', lambda v: True)
+                validation = schema[key].get('validation', public)
+                mtype = schema[key]['type']
                 initial = schema[key].get('initial')
                 initial = initial and initial(context)
-                if not validation(document.get(key, initial)):
-                    raise Exception('not valid prop or missing', key)
+                v = document.get(key, initial)
+                if not type(v) is mtype or not validation(v):
+                    raise ValidationError('not valid prop or missing', key)
                 if key in intersection or initial is not None: 
                     ret[key] = document.get(key, initial)
             else:
@@ -125,6 +126,7 @@ class Schema:
         
         set_default = schema.get('__set_default', never)
         validation = public
+        computed = None
         doc = root_doc
         paths = path.split('.')
         last = paths[-1]
@@ -143,6 +145,7 @@ class Schema:
                 except KeyError:
                     raise PathError('path does not exist')
                 validation = schema[key].get('validation', validation)
+                computed = schema[key].get('computed')
                 to_set = schema[key].get('set', set_default)
                 schema = schema[key]['type']
             
@@ -173,7 +176,9 @@ class Schema:
                 
                 if not schema[k].get('set', set_default)(doc):
                     raise SetError('no se puede setear, set')
-                value[k] = schema[k].get('computed', lambda v: v[k])(value)
+                if 'computed' in schema[k]:
+                    value[k] = schema[k]['computed'](value)   
+                #value[k] = schema[k].get('computed', lambda v: v[k])(value)
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
@@ -181,7 +186,8 @@ class Schema:
             doc['__owners'] = owners
             if not to_set(doc):
                 raise SetError('no se puede setear, set')
-            
+            if computed is not None:
+                value = computed(value) 
             if schema == type(value) and validation(value):
                 return value
             else:
