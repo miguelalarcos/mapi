@@ -128,12 +128,14 @@ class Schema:
         doc = root_doc
         paths = path.split('.')
         last = paths[-1]
+        owners = root_doc.get('__owners', [])
         
         for key in paths:
             if key.isdigit():
                 key = int(key)
                 schema = schema[0]
-                if schema.__class__ == Schema and not to_set(doc): #schema.schema.get('set', set_default)():
+                doc[key]['__owners'] = owners
+                if schema.__class__ == Schema and not to_set(doc[key]): #schema.schema.get('set', set_default)():
                     raise SetError('no se puede setear, set')
             else:
                 try:
@@ -149,10 +151,13 @@ class Schema:
                     doc = doc[key]
                 except KeyError:
                     raise PathError('path does not exist')
-                if to_set(doc):
-                    continue
-                else:
-                    raise SetError('no se puede setear, set')
+                
+                #doc['__owners'] = owners
+                if type(schema) is not list:
+                    if to_set(doc):
+                        continue
+                    else:
+                        raise SetError('no se puede setear, set')
         
         if type(schema) is list:
             schema = schema[0]
@@ -167,13 +172,15 @@ class Schema:
                     raise PathError('path does not exist')
                 except TypeError:
                     raise PathError('path does not exist')
-                if not schema[k].get('set', set_default)():
+                
+                if not schema[k].get('set', set_default)(doc):
                     raise SetError('no se puede setear, set')
                 value[k] = schema[k].get('computed', lambda v: v[k])(value)
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
 
+        doc['__owners'] = owners
         if not to_set(doc):
             raise SetError('no se puede setear, set')
         

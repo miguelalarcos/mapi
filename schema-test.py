@@ -1,8 +1,8 @@
 import unittest
-from unittest.mock import MagicMock
-from schema import Schema, public, never, read_only, SetError, ValidationError, PathError
-
-is_owner = MagicMock(return_value=False)
+from unittest.mock import MagicMock, patch
+from schema import Schema, public, never, read_only, SetError, ValidationError, PathError, is_owner
+#from api import current_user
+   
 
 class TestSetMethods(unittest.TestCase):
 
@@ -20,6 +20,21 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a', {}, 5)    
         self.assertEqual(value, 5)
+
+    def test_schema_simple_is_owner(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': is_owner,
+            'a': {
+                'type': int
+            }
+        }
+
+        A = Schema(schema_plain)
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a', {'__owners': 'miguel'}, 5)    
+            self.assertEqual(value, 5)
 
     def test_schema_simple_set_with_already_data(self):
         schema_plain = {
@@ -101,6 +116,81 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a.b', {'a': {}}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_is_owner(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a.b', {'__owners': 'miguel', 'a': {}}, 'hello :)')    
+            self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_is_owner_array(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a.0.b', {'__owners': 'miguel', 'a': [{'b': 'insert coin'}]}, 'hello :)')    
+            self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_is_owner_array_0_index(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a.0', {'__owners': 'miguel', 'a': [{'b': 'insert coin'}]}, {'b': 'hello :)'})    
+            self.assertEqual(value, {'b': 'hello :)'})
 
     def test_schema_path_set_path_does_not_exist(self):
         schema_plain = {
