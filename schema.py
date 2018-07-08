@@ -96,19 +96,20 @@ class Schema:
             raise Exception('keywords not in schema')
 
         for key in missing | intersection:
-            print(schema, key)
             if schema[key]['type'].__class__ == Schema:
                 if document.get(key):
-                    ret[key] = schema[key].post(document[key])
+                    ret[key] = schema[key]['type'].post(document[key])
             elif type(schema[key]['type']) is list:
                 schema = schema[key]['type'][0]
                 ret[key] = [schema.post(k) for k in document[key]]
             elif 'computed' not in schema[key]:
-                validation = schema[key].get('validation', lambda v: True)
+                validation = schema[key].get('validation', public)
+                mtype = schema[key]['type']
                 initial = schema[key].get('initial')
                 initial = initial and initial(context)
-                if not validation(document.get(key, initial)):
-                    raise Exception('not valid prop or missing', key)
+                v = document.get(key, initial)
+                if not type(v) is mtype or not validation(v):
+                    raise ValidationError('not valid prop or missing', key)
                 if key in intersection or initial is not None: 
                     ret[key] = document.get(key, initial)
             else:

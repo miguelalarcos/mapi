@@ -1,8 +1,110 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from schema import Schema, public, never, read_only, SetError, ValidationError, PathError, is_owner
-#from api import current_user
-   
+
+class TestPostMethods(unittest.TestCase):
+
+    def test_schema_simple_post(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post( {'a': 3})    
+        self.assertEqual(value, {'a': 3})        
+
+    def test_schema_simple_post_computed(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'computed': lambda x: 5
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({})    
+        self.assertEqual(value, {'a': 5})        
+
+    def test_schema_path_post(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({'a': {'b': 'hello'}})    
+        self.assertEqual(value, {'a': {'b': 'hello'}})
+
+    def test_schema_path_post_forbidden(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(ValidationError):
+            value = A.post({'a': {'b': 5}}) 
+           
+    def test_schema_path_post_forbidden_validation(self):
+        schema_plain = {
+            'b': {
+                'type': int,
+                'set': public,
+                'validation': lambda x: x > 5
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(ValidationError):
+            value = A.post({'a': {'b': 5}})         
+
 
 class TestSetMethods(unittest.TestCase):
 
