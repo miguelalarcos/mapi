@@ -73,27 +73,51 @@ class TestGetMethods(unittest.TestCase):
         value = A.get({'a': {'b': 'hello'}})    
         self.assertEqual(value, {'a': {}})
 
-    def test_schema_path_array_b_is_private(self):
+    def test_schema_path_b_is_not_owner(self):
         schema_plain = {
             'b': {
                 'type': str,
-                'get': private
+                'get': is_owner
             }
         }
         B = Schema(schema_plain)
         
         schema_plain = {
             'a': {
-                'type': [B],
+                'type': B,
                 'set': public
             }
         }
 
         A = Schema(schema_plain)
 
-        value = A.get({'a': [{'b': 'hello'}]})    
-        self.assertEqual(value, {'a': [{}]})
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'__owners': ['miguel.'], 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'a': {}})
 
+    def test_schema_path_b_is_owner(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'__owners': ['miguel'], 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'a': {'b': 'hello'}})
 
 class TestPostMethods(unittest.TestCase):
 

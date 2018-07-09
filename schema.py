@@ -40,6 +40,7 @@ def hidden(*args):
     return False
 
 def is_owner(doc):
+    print(current_user(), doc['__owners'])
     return current_user() in doc['__owners']
 
 class Schema:
@@ -61,14 +62,19 @@ class Schema:
         set_schema = set(schema.keys()) - set(self.kw)
         intersection =  set_document & set_schema
 
+        owners = document.get('__owners', [])
+
         for key in intersection:
             g = schema[key].get('get', public)
+            if '__owners' not in document:
+                document['__owners'] = owners
             v = g(document)
             
             if schema[key]['type'].__class__ == Schema:
                 if not v:
                     ret[key] = None
                 else:
+                    document[key]['__owners'] = owners
                     ret[key] = schema[key]['type'].get(document[key])
             elif schema[key]['type'].__class__ is list:
                 if not v:
