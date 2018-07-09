@@ -40,7 +40,6 @@ def hidden(*args):
     return False
 
 def is_owner(doc):
-    print(current_user(), doc['__owners'])
     return current_user() in doc['__owners']
 
 class Schema:
@@ -52,7 +51,9 @@ class Schema:
     def __getitem__(self, index):
         return self.schema[index]
 
-    def get(self, document):
+    def get(self, document, root_doc=None):
+        if root_doc is None:
+            root_doc = document
         schema = self.schema
         g = schema.get('__get', public)
         if not g(document):
@@ -62,20 +63,15 @@ class Schema:
         set_schema = set(schema.keys()) - set(self.kw)
         intersection =  set_document & set_schema
 
-        owners = document.get('__owners', [])
-
         for key in intersection:
             g = schema[key].get('get', public)
-            if '__owners' not in document:
-                document['__owners'] = owners
-            v = g(document)
+            v = g(root_doc or document)
             
             if schema[key]['type'].__class__ == Schema:
                 if not v:
                     ret[key] = None
                 else:
-                    document[key]['__owners'] = owners
-                    ret[key] = schema[key]['type'].get(document[key])
+                    ret[key] = schema[key]['type'].get(document[key], root_doc)
             elif schema[key]['type'].__class__ is list:
                 if not v:
                     ret[key] = []
@@ -125,26 +121,25 @@ class Schema:
                 ret[key] = val
         return ret
 
-    def put(self, path, root_doc, value):
+    def put(self, path, doc, value):
+        root_doc = doc
         schema = self.schema
         s = schema.get('__set_document', never)
-        if not s(root_doc):
+        if not s(doc):
             raise SetError('no se puede setear, __set')
         
         set_default = schema.get('__set_default', never)
         validation = public
         computed = None
-        doc = root_doc
+
         paths = path.split('.')
         last = paths[-1]
-        owners = root_doc.get('__owners', [])
         
         for key in paths:
             if key.isdigit():
                 key = int(key)
                 schema = schema[0]
-                doc[key]['__owners'] = owners
-                if schema.__class__ == Schema and not to_set(doc[key]): #schema.schema.get('set', set_default)():
+                if schema.__class__ == Schema and not to_set(root_doc):
                     raise SetError('no se puede setear, set')
             else:
                 try:
@@ -163,8 +158,7 @@ class Schema:
                     raise PathError('path does not exist')
                 
                 if type(schema) is not list:
-                    doc['__owners'] = owners
-                    if not to_set(doc):
+                    if not to_set(root_doc):
                         raise SetError('no se puede setear, set')
         
         if type(schema) is list:
@@ -181,17 +175,15 @@ class Schema:
                 except TypeError:
                     raise PathError('path does not exist')
                 
-                if not schema[k].get('set', set_default)(doc):
+                if not schema[k].get('set', set_default)(root_doc):
                     raise SetError('no se puede setear, set')
                 if 'computed' in schema[k]:
                     value[k] = schema[k]['computed'](value)   
-                #value[k] = schema[k].get('computed', lambda v: v[k])(value)
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
         else:
-            doc['__owners'] = owners
-            if not to_set(doc):
+            if not to_set(root_doc):
                 raise SetError('no se puede setear, set')
             if computed is not None:
                 value = computed(value) 
