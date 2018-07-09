@@ -15,6 +15,7 @@ identity = lambda x: x
 public = lambda *args: True
 never  = lambda *args: False
 hidden = lambda *args: False
+private = hidden
 
 def required(v):
     return v is not None

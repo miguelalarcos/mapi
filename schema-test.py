@@ -1,6 +1,99 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from schema import Schema, public, never, read_only, SetError, ValidationError, PathError, is_owner
+from schema import Schema, public, never, read_only, \
+     SetError, ValidationError, PathError, is_owner, required, private
+
+class TestGetMethods(unittest.TestCase):
+
+    def test_schema_simple_get(self):
+        schema_plain = {
+            'a': {
+                'type': int,
+                'get': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get( {'a': 3})    
+        self.assertEqual(value, {'a': 3})        
+
+    def test_schema_simple_get_forbidden(self):
+        schema_plain = {
+            'a': {
+                'type': int,
+                'get': private
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get( {'a': 3})    
+        self.assertEqual(value, {})        
+
+    def test_schema_path_get(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get({'a': {'b': 'hello'}})    
+        self.assertEqual(value, {'a': {'b': 'hello'}})
+
+    def test_schema_path_b_is_private(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': private
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get({'a': {'b': 'hello'}})    
+        self.assertEqual(value, {'a': {}})
+
+    def test_schema_path_array_b_is_private(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': private
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': [B],
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get({'a': [{'b': 'hello'}]})    
+        self.assertEqual(value, {'a': [{}]})
+
 
 class TestPostMethods(unittest.TestCase):
 
@@ -25,15 +118,48 @@ class TestPostMethods(unittest.TestCase):
             '__set_default': never,
             'a': {
                 'type': int,
-                'set': public,
+                'set': read_only,
                 'computed': lambda x: 5
             }
         }
 
         A = Schema(schema_plain)
 
-        value = A.post({})    
-        self.assertEqual(value, {'a': 5})        
+        value = A.post( {})    
+        self.assertEqual(value, {'a': 5}) 
+
+    def test_schema_simple_post_required(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'validation': lambda x: required(x)
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post( {'a': 3})    
+        self.assertEqual(value, {'a': 3}) 
+
+
+    def test_schema_simple_post_required_forbidden(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'validation': lambda x: required(x)
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(ValidationError):
+            value = A.post({})    
 
     def test_schema_path_post(self):
         schema_plain = {
@@ -122,6 +248,21 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a', {}, 5)    
         self.assertEqual(value, 5)
+
+    def test_schema_simple_set_read_only(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': read_only
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(SetError):
+            value = A.put('a', {}, 5)    
 
     def test_schema_simple_set_computed(self):
         schema_plain = {
