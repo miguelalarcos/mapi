@@ -14,8 +14,10 @@ print(jwt.encode({'user': 'miguel', 'roles': ['user', 'offerer']}, JWT_SECRET, a
 
 api_get('/offer/<id>', db.offer, OfferSchema)
 api_put('/offer/<id>', db.offer, OfferSchema)
-api_post('/offers',db.offer, OfferSchema)
-
+@api_post('/offers',db.offer, OfferSchema)
+def offer_post(payload):
+    pass
+    
 application = default_app()
 if __name__ == '__main__':
     debug(True)

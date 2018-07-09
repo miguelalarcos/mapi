@@ -90,14 +90,19 @@ def api_put(route, collection, schema):
     return helper
 
 def api_post(route, collection, schema):
-    @post(route)
-    @returns_json
-    @catching
-    def helper():            
-        response.status = 201
-        an_offer = current_payload()
-        an_offer = schema.post(an_offer)
-        _id = collection.insert_one(an_offer).inserted_id
-        an_offer['_id'] = str(_id)
-        return an_offer
-    return helper
+    def decorator(f):
+        @post(route)
+        @returns_json
+        @catching
+        def helper():            
+            response.status = 201
+            payload = current_payload()
+            ctx = f(payload)
+            if ctx is None:
+                ctx = {}
+            payload = schema.post(payload, ctx)
+            _id = collection.insert_one(payload).inserted_id
+            payload['_id'] = str(_id)
+            return payload
+        return helper
+    return decorator
