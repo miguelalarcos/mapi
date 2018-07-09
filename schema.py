@@ -42,6 +42,14 @@ def hidden(*args):
 def is_owner(doc):
     return current_user() in doc['__owners']
 
+def current_user_is(prop):
+    def helper(root_doc, new_doc=None):
+        if root_doc[prop] == current_user():
+            return True
+        else:
+            return False
+    return helper
+
 class Schema:
     def __init__(self, schema):
         self.schema = schema

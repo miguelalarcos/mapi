@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from schema import Schema, public, never, read_only, \
-     SetError, ValidationError, PathError, is_owner, required, private
+     SetError, ValidationError, PathError, is_owner, required, private, current_user_is
+
 
 class TestGetMethods(unittest.TestCase):
 
@@ -118,6 +119,58 @@ class TestGetMethods(unittest.TestCase):
             mock.return_value = 'miguel'
             value = A.get({'__owners': ['miguel'], 'a': {'b': 'hello'}})    
             self.assertEqual(value, {'a': {'b': 'hello'}})
+
+    def test_schema_path_b_is_not_current_user_miguel(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': current_user_is('user')
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            },
+            'user': {
+                'type': str
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguelxxx'
+            value = A.get({'user': 'miguel', 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'user': 'miguel', 'a': {}})
+
+    def test_schema_path_b_is_current_user_miguel(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': current_user_is('user')
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            },
+            'user': {
+                'type': str
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'user': 'miguel', 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'user': 'miguel', 'a': {'b': 'hello'}})
 
 class TestPostMethods(unittest.TestCase):
 
