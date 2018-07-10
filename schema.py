@@ -62,8 +62,9 @@ class Schema:
     def get(self, document, root_doc=None):
         if root_doc is None:
             root_doc = document
+        get_default = self.schema.get('__get_default', public)
         schema = self.schema
-        g = schema.get('__get', public)
+        g = schema.get('__get', get_default)
         if not g(document):
             return None
         ret = {}
@@ -89,13 +90,15 @@ class Schema:
                 ret[key] = document[key]
         return ret
 
-    def post(self,document, context=None):
+    def post(self,document, context=None, root_doc=None):
         if context is None:
             context = {}
+        if root_doc is None:
+            root_doc = document
         schema = self.schema
 
         c = schema.get('__create_document', lambda *args: True)
-        if not c(document):
+        if not c(root_doc):
             raise Exception('can not create document')
 
         ret = {}
@@ -109,10 +112,10 @@ class Schema:
         for key in missing | intersection:
             if schema[key]['type'].__class__ == Schema:
                 if document.get(key):
-                    ret[key] = schema[key]['type'].post(document[key])
+                    ret[key] = schema[key]['type'].post(document[key], context, root_doc)
             elif type(schema[key]['type']) is list:
                 schema = schema[key]['type'][0]
-                ret[key] = [schema.post(k) for k in document[key]]
+                ret[key] = [schema.post(k, context, root_doc) for k in document[key]]
             elif 'computed' not in schema[key]:
                 validation = schema[key].get('validation', public)
                 mtype = schema[key]['type']
@@ -158,16 +161,14 @@ class Schema:
                 computed = schema[key].get('computed')
                 to_set = schema[key].get('set', set_default)
                 schema = schema[key]['type']
-            
+                
+            if not to_set(root_doc):
+                raise SetError('no se puede setear, set')   
             if (schema.__class__ == Schema or type(schema) is list) and key != last:
                 try:                
                     doc = doc[key]
                 except KeyError:
                     raise PathError('path does not exist')
-                
-                if type(schema) is not list:
-                    if not to_set(root_doc):
-                        raise SetError('no se puede setear, set')
         
         if type(schema) is list:
             schema = schema[0]

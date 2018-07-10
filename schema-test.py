@@ -189,6 +189,22 @@ class TestPostMethods(unittest.TestCase):
         value = A.post( {'a': 3})    
         self.assertEqual(value, {'a': 3})        
 
+    def test_schema_simple_post_with_initial(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'initial': lambda ctx: 7
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({})    
+        self.assertEqual(value, {'a': 7})        
+
     def test_schema_simple_post_computed(self):
         schema_plain = {
             '__set_document': public, 
@@ -309,7 +325,7 @@ class TestPostMethods(unittest.TestCase):
             value = A.post({'a': {'b': 5}})         
 
 
-class TestSetMethods(unittest.TestCase):
+class TestPutMethods(unittest.TestCase):
 
     def test_schema_simple_set(self):
         schema_plain = {
@@ -758,6 +774,56 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a.0.b', {'a': [{'b': 'insert coin'}]}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_object_array_valid_current_user_is(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': current_user_is('user')
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a', {'user': 'miguel'}, {'b': 'hello :)'})    
+            self.assertEqual(value, {'b': 'hello :)'})
+
+    def test_schema_path_set_object_array_invalid_current_user_is(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': current_user_is('user')
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            with self.assertRaises(SetError):
+                A.put('a', {'user': 'miguelxxx'}, {'b': 'hello :)'})   
 
 if __name__ == '__main__':
     unittest.main()
