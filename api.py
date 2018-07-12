@@ -9,6 +9,7 @@ JWT_ALGORITHM = 'HS256'
 
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
+    print(jwt_token)
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     return jwt_payload.get('user') 
 
@@ -162,6 +163,21 @@ def api_get_many(route, collection, schema, max_limit):
                 doc['_id'] = str(id)
                 doc = schema.get(doc)
                 ret.append(doc)
+            return ret
+        return helper
+    return decorator
+
+def api_aggregation(route, collection):
+    def decorator(f):
+        @get(route)
+        @returns_json
+        def helper():
+            pipeline = f()
+            ret_ = list(collection.aggregate(pipeline))
+            ret = []
+            for r in ret_:
+                r['_id'] = str(r['_id'])
+                ret.append(r)
             return ret
         return helper
     return decorator

@@ -55,6 +55,7 @@ class Schema:
     def get(self, document, root_doc=None):
         if root_doc is None:
             root_doc = document
+        
         g = get_default = self.schema.get('__get_default', public)
         schema = self.schema
         #g = schema.get('__get', get_default)
@@ -153,7 +154,7 @@ class Schema:
                 try:
                     schema[key]
                 except KeyError:
-                    raise PathError('path does not exist')
+                    raise PathError('path does not exist', key)
                 validation = schema[key].get('validation', validation)
                 computed = schema[key].get('computed')
                 to_set = schema[key].get('set', set_default)

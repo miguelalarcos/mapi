@@ -1,4 +1,5 @@
-from schema import Schema, public, current_user, read_only, default, required, is_owner, now
+from schema import Schema, public, current_user, read_only, default, \
+     required, is_owner, now, current_user_is
 from api import has_role
 
 plain_schema = {
@@ -18,6 +19,12 @@ plain_schema = {
         "type": float,
         "initial": now,
         "set": read_only
+    },
+    "unread": {
+        "type": bool,
+        "initial": lambda *args: True,
+        "get": current_user_is('offerer'),
+        "set": current_user_is('offerer')
     }
 }
 
@@ -86,6 +93,11 @@ plain_schema = {
         "type": str,
         "get": is_owner,
         "set": is_owner
+    },
+    "offererObservations": {
+        "type": str,
+        "get": current_user_is('offerer'),
+        "set": current_user_is('offerer')
     },
     "messages": {
         "type": [Message],
