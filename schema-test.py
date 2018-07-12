@@ -174,6 +174,59 @@ class TestGetMethods(unittest.TestCase):
 
 class TestPostMethods(unittest.TestCase):
 
+    def test_schema_simple_post_required(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'required': True,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({'a': 3})    
+        self.assertEqual(value, {'a': 3})
+
+    def test_schema_simple_post_required_false(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'required': True,
+                'set': public
+            },
+            'b': {
+                'type': str,
+                'required': False,
+                "validation": lambda v: len(v) > 5
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({'a': 3})    
+        self.assertEqual(value, {'a': 3})
+
+
+    def test_schema_simple_post_required_forbidden(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'required': True            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(ValidationError):
+            value = A.post({})    
+
     def test_schema_simple_post(self):
         schema_plain = {
             '__set_document': public, 
@@ -220,39 +273,6 @@ class TestPostMethods(unittest.TestCase):
 
         value = A.post( {})    
         self.assertEqual(value, {'a': 5}) 
-
-    def test_schema_simple_post_required(self):
-        schema_plain = {
-            '__set_document': public, 
-            '__set_default': never,
-            'a': {
-                'type': int,
-                'set': public,
-                'validation': lambda x: required(x)
-            }
-        }
-
-        A = Schema(schema_plain)
-
-        value = A.post( {'a': 3})    
-        self.assertEqual(value, {'a': 3}) 
-
-
-    def test_schema_simple_post_required_forbidden(self):
-        schema_plain = {
-            '__set_document': public, 
-            '__set_default': never,
-            'a': {
-                'type': int,
-                'set': public,
-                'validation': lambda x: required(x)
-            }
-        }
-
-        A = Schema(schema_plain)
-
-        with self.assertRaises(ValidationError):
-            value = A.post({})    
 
     def test_schema_path_post(self):
         schema_plain = {

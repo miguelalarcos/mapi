@@ -1,14 +1,6 @@
 import time
 from api import current_user
-
-class SetError(Exception):
-    pass
-
-class ValidationError(Exception):
-    pass
-
-class PathError(Exception):
-    pass
+from errors import SetError, ValidationError, PathError
 
 now = lambda *args: time.time()
 identity = lambda x: x
@@ -54,7 +46,8 @@ class Schema:
     def __init__(self, schema):
         self.schema = schema
         self.kw = ['__get', '__set_document', '__get_document', \
-                   '__create_document', '__ownership', '__set_default']
+                   '__create_document', '__ownership', '__set_default', \
+                   '__get_default']
 
     def __getitem__(self, index):
         return self.schema[index]
@@ -62,10 +55,10 @@ class Schema:
     def get(self, document, root_doc=None):
         if root_doc is None:
             root_doc = document
-        get_default = self.schema.get('__get_default', public)
+        g = get_default = self.schema.get('__get_default', public)
         schema = self.schema
-        g = schema.get('__get', get_default)
-        if not g(document):
+        #g = schema.get('__get', get_default)
+        if not g(root_doc):
             return None
         ret = {}
         set_document = set(document.keys())
@@ -85,7 +78,7 @@ class Schema:
                 if not v:
                     ret[key] = []
                 else:
-                    ret[key] = [schema[key]['type'][0].get(k) for k in document[key]] 
+                    ret[key] = [schema[key]['type'][0].get(k, root_doc) for k in document[key]] 
             elif v:
                 ret[key] = document[key]
         return ret
@@ -118,11 +111,15 @@ class Schema:
                 ret[key] = [schema.post(k, context, root_doc) for k in document[key]]
             elif 'computed' not in schema[key]:
                 validation = schema[key].get('validation', public)
+                required = schema[key].get('required', False)
                 mtype = schema[key]['type']
                 initial = schema[key].get('initial')
                 initial = initial and initial(context)
                 v = document.get(key, initial)
-                if not type(v) is mtype or not validation(v):
+                
+                if required and v is None:
+                    raise ValidationError('required')
+                if v is not None and (not type(v) is mtype or not validation(v)):
                     raise ValidationError('not valid prop or missing', key)
                 if key in intersection or initial is not None: 
                     ret[key] = document.get(key, initial)
@@ -178,13 +175,18 @@ class Schema:
             for k in keys:
                 try:
                     schema[k]
+                    if k not in value and 'initial' in schema[k]:
+                        value[k] = schema[k]['initial']()
+                        sett = public
+                    else:
+                        sett = schema[k].get('set', set_default)
                     value[k]
                 except KeyError:
-                    raise PathError('path does not exist')
+                    raise PathError('keyerror path does not exist', k, schema.schema, value)
                 except TypeError:
-                    raise PathError('path does not exist')
+                    raise PathError('type error path does not exist', k)
                 
-                if not schema[k].get('set', set_default)(root_doc):
+                if not sett(root_doc): #schema[k].get('set', set_default)(root_doc):
                     raise SetError('no se puede setear, set')
                 if 'computed' in schema[k]:
                     value[k] = schema[k]['computed'](value)   
