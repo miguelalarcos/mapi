@@ -9,7 +9,6 @@ JWT_ALGORITHM = 'HS256'
 
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
-    print(jwt_token)
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     return jwt_payload.get('user') 
 
@@ -84,8 +83,8 @@ def api_get(route, collection, schema):
             id = ObjectId(id)
             filter = {"_id": id}
             if schema['__ownership']:
-                filter.update({'owner': current_user()})
-            proj = f()
+                filter.update({'__owners': current_user()})
+            proj = f(id)
             if proj:
                 doc = collection.find_one(filter, proj)
             else:
@@ -109,6 +108,8 @@ def api_put(route, collection, schema):
             t = '$set'
             if js['type'] == '$push':
                 t = '$push'
+            elif js['type'] == '$pull':
+                t = '$pull'
             mod = {}
             for data in js['data']:
                 doc = schema.put(data['path'], old_doc, data['value'])
@@ -151,7 +152,7 @@ def api_get_many(route, collection, schema, max_limit):
             response.status = 200
             filter = {}
             if schema['__ownership']:
-                filter.update({'owner': current_user()})
+                filter.update({'__owners': current_user()})
             limit = min(limit, max_limit)
             proj, filter = f(request.params, filter)
             if proj:
@@ -160,7 +161,7 @@ def api_get_many(route, collection, schema, max_limit):
                 docs = collection.find(filter).limit(limit).skip(offset)
             ret = []
             for doc in docs:
-                doc['_id'] = str(id)
+                doc['_id'] = str(doc['_id'])
                 doc = schema.get(doc)
                 ret.append(doc)
             return ret
@@ -171,8 +172,8 @@ def api_aggregation(route, collection):
     def decorator(f):
         @get(route)
         @returns_json
-        def helper():
-            pipeline = f()
+        def helper(*args, **kwargs):
+            pipeline = f(*args, **kwargs)
             ret_ = list(collection.aggregate(pipeline))
             ret = []
             for r in ret_:

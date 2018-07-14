@@ -115,7 +115,7 @@ class Schema:
                 required = schema[key].get('required', False)
                 mtype = schema[key]['type']
                 initial = schema[key].get('initial')
-                initial = initial and initial(context)
+                initial = initial and initial(root_doc) #initial(context)
                 v = document.get(key, initial)
                 
                 if required and v is None:
@@ -177,7 +177,7 @@ class Schema:
                 try:
                     schema[k]
                     if k not in value and 'initial' in schema[k]:
-                        value[k] = schema[k]['initial']()
+                        value[k] = schema[k]['initial'](root_doc)
                         sett = public
                     else:
                         sett = schema[k].get('set', set_default)

@@ -23,15 +23,15 @@ plain_schema = {
     "unread": {
         "type": bool,
         "initial": lambda *args: True,
-        "get": current_user_is('offerer'),
-        "set": current_user_is('offerer')
+        "get": is_owner,
+        "set": is_owner
     }
 }
 
 Message = Schema(plain_schema)
 
 plain_schema = {
-    "__ownership": False,
+    "__ownership": True,
     #"__create_document": has_role('offerer'),
     "__set_document": is_owner,
     "__set_default": is_owner,
@@ -39,7 +39,7 @@ plain_schema = {
     "__owners": {
         "type": list,
         "set": read_only,
-        "initial": lambda ctx: [current_user()]
+        "initial": lambda payload: [current_user(), payload['offerer']]
     },
     "_id": {
         "type": str,
@@ -62,6 +62,7 @@ plain_schema = {
     "status": {
         "type": str,
         "required": True,
+        "set": current_user_is('offerer'),
         "validation": lambda v: v in ['open', 'discarded']
     },
     "tags": {
@@ -91,8 +92,8 @@ plain_schema = {
     #},
     "candidateObservations": {
         "type": str,
-        "get": is_owner,
-        "set": is_owner
+        "get": current_user_is('candidate'),
+        "set": current_user_is('candidate')
     },
     "offererObservations": {
         "type": str,
@@ -103,6 +104,14 @@ plain_schema = {
         "type": [Message],
         "get": is_owner,
         "set": is_owner
+    },
+    "date":{
+        'type': float,
+        'set': read_only
+    },
+    "province":{
+        'type': str,
+        'set': read_only
     },
     "created_at": {
         "type": float,
