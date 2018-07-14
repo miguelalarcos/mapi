@@ -112,8 +112,12 @@ def api_put(route, collection, schema):
                 t = '$pull'
             mod = {}
             for data in js['data']:
-                doc = schema.put(data['path'], old_doc, data['value'])
-                mod[data['path']] = doc       
+                if t == '$pull':
+                    if schema.put(data['path'], old_doc, ""):
+                        mod[data['path']] = data['value']    
+                else:
+                    doc = schema.put(data['path'], old_doc, data['value'])
+                    mod[data['path']] = doc       
             
             collection.update_one({"_id": id}, {t: mod})
             proj = f()

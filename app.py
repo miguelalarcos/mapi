@@ -3,6 +3,7 @@ from bottle import run, debug, default_app, request, hook, response, route, get
 from pymongo import MongoClient
 from offer_schema import OfferSchema
 from candidature_schema import CandidatureSchema
+from user_schema import UserSchema
 import jwt 
 import json
 from bson.objectid import ObjectId
@@ -61,6 +62,10 @@ def get_candidature(id):
 @api_get('/candidature-with-messages/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
     pass
+
+@api_get('/candidate/<id>', db.user, UserSchema)
+def get_candidate(id):
+    return {"password": 0}
 
 @api_aggregation('/message-aggregation', db.candidature)
 def message_aggregation():

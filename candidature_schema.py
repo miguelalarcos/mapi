@@ -45,6 +45,10 @@ plain_schema = {
         "type": str,
         "set": read_only
     },
+    "user_id": {
+        "type": str,
+        "set": read_only,
+    },
     "company": {
         "type": str,
         "set": read_only

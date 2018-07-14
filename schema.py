@@ -130,7 +130,7 @@ class Schema:
                 ret[key] = val
         return ret
 
-    def put(self, path, doc, value):
+    def put(self, path, doc, value, pull=False):
         root_doc = doc
         schema = self.schema
         s = schema.get('__set_document', never)
@@ -169,6 +169,8 @@ class Schema:
                     raise PathError('path does not exist')
         
         if type(schema) is list:
+            if pull:
+                return True
             schema = schema[0]
         if schema.__class__ == Schema:
             set_default = schema.schema.get('__set_default', never)
