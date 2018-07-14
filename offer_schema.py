@@ -14,7 +14,7 @@ plain_schema = {
     "__owners": {
         "type": list,
         "set": read_only,
-        "initial": lambda *args: [current_user()]
+        "initial": lambda ctx: [current_user()]
     },
     "_id": {
         "type": str,
@@ -27,15 +27,17 @@ plain_schema = {
     },
     "title": {
         "type": str,
-        "validation": lambda v: required(v) and type(v) is str and 0 < len(v) <= 30
+        "required": True,
+        "validation": lambda v: 0 < len(v) <= 30
     },
     "description": {
         "type": str,
-        "validation": lambda v: required(v) and type(v) is str and 0 < len(v) <= 250
+        "required": True,
+        "validation": lambda v: 0 < len(v) <= 250
     },
     "tags": {
         "type": list,
-        "validation": lambda v: required(v) and type(v) is list
+        "required": True
     },
     "province": {
         "type": str,
@@ -43,20 +45,26 @@ plain_schema = {
     },
     "remote": {
         "type": bool,
-        "validation": lambda v: required(v) and type(v) is bool
+        "required": True,
     },
     "questions": {
         "type": str,
         "get": is_owner,
-        "validation": lambda v: not v or type(v) is str and 0 < len(v) < 1000
+        "required": False,
+        "validation": lambda v: 0 < len(v) < 1000
     },
-    "salary": {
-        "type": str,
-        "validation": lambda v: not v or type(v) is str and 0 <= len(v) <= 20
+    "salary-min": {
+        "type": float,
+        "required": False
+    },
+    "salary-max": {
+        "type": float,
+        "required": False
     },
     "status": {
         "type": str,
         "initial": default('open'),
+        "required": True,
         "validation": lambda v: v in ['open', 'closed']
     },
     "created_at": {

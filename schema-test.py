@@ -1,8 +1,231 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from schema import Schema, public, never, read_only, SetError, ValidationError, PathError, is_owner
+from schema import Schema, public, never, read_only, \
+     SetError, ValidationError, PathError, is_owner, required, private, current_user_is
+
+
+class TestGetMethods(unittest.TestCase):
+
+    def test_schema_simple_get(self):
+        schema_plain = {
+            'a': {
+                'type': int,
+                'get': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get( {'a': 3})    
+        self.assertEqual(value, {'a': 3})        
+
+    def test_schema_simple_get_forbidden(self):
+        schema_plain = {
+            'a': {
+                'type': int,
+                'get': private
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get( {'a': 3})    
+        self.assertEqual(value, {})        
+
+    def test_schema_path_get(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get({'a': {'b': 'hello'}})    
+        self.assertEqual(value, {'a': {'b': 'hello'}})
+
+    def test_schema_path_b_is_private(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': private
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.get({'a': {'b': 'hello'}})    
+        self.assertEqual(value, {'a': {}})
+
+    def test_schema_path_b_is_not_owner(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'__owners': ['miguel.'], 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'a': {}})
+
+    def test_schema_path_b_is_owner(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': is_owner
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'__owners': ['miguel'], 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'a': {'b': 'hello'}})
+
+    def test_schema_path_b_is_not_current_user_miguel(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': current_user_is('user')
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            },
+            'user': {
+                'type': str
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguelxxx'
+            value = A.get({'user': 'miguel', 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'user': 'miguel', 'a': {}})
+
+    def test_schema_path_b_is_current_user_miguel(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'get': current_user_is('user')
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            'a': {
+                'type': B,
+                'set': public
+            },
+            'user': {
+                'type': str
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.get({'user': 'miguel', 'a': {'b': 'hello'}})    
+            self.assertEqual(value, {'user': 'miguel', 'a': {'b': 'hello'}})
 
 class TestPostMethods(unittest.TestCase):
+
+    def test_schema_simple_post_required(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'required': True,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({'a': 3})    
+        self.assertEqual(value, {'a': 3})
+
+    def test_schema_simple_post_required_false(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'required': True,
+                'set': public
+            },
+            'b': {
+                'type': str,
+                'required': False,
+                "validation": lambda v: len(v) > 5
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post({'a': 3})    
+        self.assertEqual(value, {'a': 3})
+
+
+    def test_schema_simple_post_required_forbidden(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': public,
+                'required': True            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(ValidationError):
+            value = A.post({})    
 
     def test_schema_simple_post(self):
         schema_plain = {
@@ -19,21 +242,37 @@ class TestPostMethods(unittest.TestCase):
         value = A.post( {'a': 3})    
         self.assertEqual(value, {'a': 3})        
 
-    def test_schema_simple_post_computed(self):
+    def test_schema_simple_post_with_initial(self):
         schema_plain = {
             '__set_document': public, 
             '__set_default': never,
             'a': {
                 'type': int,
                 'set': public,
-                'computed': lambda x: 5
+                'initial': lambda ctx: 7
             }
         }
 
         A = Schema(schema_plain)
 
         value = A.post({})    
-        self.assertEqual(value, {'a': 5})        
+        self.assertEqual(value, {'a': 7})        
+
+    def test_schema_simple_post_computed(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': read_only,
+                'computed': lambda x: 5
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.post( {})    
+        self.assertEqual(value, {'a': 5}) 
 
     def test_schema_path_post(self):
         schema_plain = {
@@ -106,7 +345,7 @@ class TestPostMethods(unittest.TestCase):
             value = A.post({'a': {'b': 5}})         
 
 
-class TestSetMethods(unittest.TestCase):
+class TestPutMethods(unittest.TestCase):
 
     def test_schema_simple_set(self):
         schema_plain = {
@@ -122,6 +361,21 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a', {}, 5)    
         self.assertEqual(value, 5)
+
+    def test_schema_simple_set_read_only(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': int,
+                'set': read_only
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(SetError):
+            value = A.put('a', {}, 5)    
 
     def test_schema_simple_set_computed(self):
         schema_plain = {
@@ -540,6 +794,56 @@ class TestSetMethods(unittest.TestCase):
 
         value = A.put('a.0.b', {'a': [{'b': 'insert coin'}]}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
+
+    def test_schema_path_set_object_array_valid_current_user_is(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': current_user_is('user')
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            value = A.put('a', {'user': 'miguel'}, {'b': 'hello :)'})    
+            self.assertEqual(value, {'b': 'hello :)'})
+
+    def test_schema_path_set_object_array_invalid_current_user_is(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'set': current_user_is('user')
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with patch('schema.current_user') as mock:
+            mock.return_value = 'miguel'
+            with self.assertRaises(SetError):
+                A.put('a', {'user': 'miguelxxx'}, {'b': 'hello :)'})   
 
 if __name__ == '__main__':
     unittest.main()
