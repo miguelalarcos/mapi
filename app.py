@@ -52,12 +52,25 @@ def offer_get_many(params, filter):
 def get_many_candidatures(params, filter):
     if 'offer' in params:
         filter['offer'] = params['offer']
+    #else: raise
     return {'messages': 0}, filter
+
+@api_get_many('/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
+def get_many_candidatures(params, filter):
+    print ('*'*10, params['tags'])
+    if 'tags' in params:
+        print('entro')
+        filter['tags'] = {"$in": params['tags'].split(',')}
+    #else: raise
+    return None, filter
 
 @api_get('/candidature/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
     return {'messages': 0}
 
+@api_put('/add-experience/<id>', db.user, UserSchema)
+def append_experience():
+    pass
 
 @api_get('/candidature-with-messages/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
@@ -66,6 +79,10 @@ def get_candidature(id):
 @api_get('/candidate/<id>', db.user, UserSchema)
 def get_candidate(id):
     return {"password": 0}
+
+@api_post('/candidatures', db.candidature, CandidatureSchema)
+def post_candidature():
+    pass
 
 @api_aggregation('/message-aggregation', db.candidature)
 def message_aggregation():
@@ -110,6 +127,18 @@ def total_actives(offer):
         }
         ] 
 
+@api_aggregation('/already-subscribed-aggregation/<offer>', db.candidature)
+def already_subscribed(offer):
+    return [
+        { "$match": {"offer": {"$in": offer.split(',')}, "status": "open", "candidate": current_user()}}, 
+        {"$group": {
+            "_id": "$offer", 
+            "total": {
+                "$sum": 1
+                }
+            }
+        }
+        ] 
 
 application = default_app()
 if __name__ == '__main__':

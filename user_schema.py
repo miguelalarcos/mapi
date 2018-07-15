@@ -6,7 +6,7 @@ plain_schema = {
     "__get_default": public,
     "__set_default": is_owner,
     "tags": {
-        "type": list,
+        "type": str,
         "required": True
     },
     "description": {
@@ -18,16 +18,26 @@ plain_schema = {
 
 Experience = Schema(plain_schema)
 
+def tags(doc):
+    s = set()
+    for exp in doc['experience']:
+        exps = exp['tags'].split(',')
+        exps = [e.strip() for e in exps if e != '']
+        for e in exps:
+            s.add(e)
+    return list(s)
+
 plain_schema = {
     "__ownership": False,
     #"__create_document": has_role('offerer'),
     "__set_document": is_owner,
     "__set_default": is_owner,
     "__get_default": public,
+    "__ownership": True,
     "__owners": {
         "type": list,
         "set": read_only,
-        #"initial": lambda payload: [current_user(), payload['offerer']]
+        "initial": lambda payload: [payload['name']]
     },
     "_id": {
         "type": str,
@@ -49,6 +59,10 @@ plain_schema = {
         "type": str,
         "get": never,
         "set": never
+    },
+    "tags": {
+        "type": list,
+        "computed": lambda doc: tags(doc)
     },
     "phone": {
         "type": str,

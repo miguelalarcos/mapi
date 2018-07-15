@@ -50,6 +50,7 @@ class Schema:
                    '__get_default']
 
     def __getitem__(self, index):
+        
         return self.schema[index]
 
     def get(self, document, root_doc=None):
@@ -85,6 +86,7 @@ class Schema:
         return ret
 
     def post(self,document, context=None, root_doc=None):
+        
         if context is None:
             context = {}
         if root_doc is None:
@@ -104,12 +106,16 @@ class Schema:
             raise Exception('keywords not in schema')
 
         for key in missing | intersection:
+            
             if schema[key]['type'].__class__ == Schema:
+                
                 if document.get(key):
+                    
                     ret[key] = schema[key]['type'].post(document[key], context, root_doc)
             elif type(schema[key]['type']) is list:
-                schema = schema[key]['type'][0]
-                ret[key] = [schema.post(k, context, root_doc) for k in document[key]]
+                #schema = schema[key]['type'][0]
+                if document.get(key):
+                    ret[key] = [schema[key]['type'][0].post(k, context, root_doc) for k in document[key]]
             elif 'computed' not in schema[key]:
                 validation = schema[key].get('validation', public)
                 required = schema[key].get('required', False)
@@ -192,7 +198,7 @@ class Schema:
                 if not sett(root_doc): #schema[k].get('set', set_default)(root_doc):
                     raise SetError('no se puede setear, set')
                 if 'computed' in schema[k]:
-                    value[k] = schema[k]['computed'](value)   
+                    value[k] = schema[k]['computed'](root_doc) #(value)   
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
@@ -200,7 +206,7 @@ class Schema:
             if not to_set(root_doc):
                 raise SetError('no se puede setear, set')
             if computed is not None:
-                value = computed(value) 
+                value = computed(root_doc) 
             if schema == type(value) and validation(value):
                 return value
             else:
