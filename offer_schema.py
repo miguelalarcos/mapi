@@ -33,7 +33,7 @@ plain_schema = {
     "description": {
         "type": str,
         "required": True,
-        "validation": lambda v: 0 < len(v) <= 250
+        "validation": lambda v: 0 < len(v) <= 1000
     },
     "tags": {
         "type": list,
@@ -60,6 +60,10 @@ plain_schema = {
     "salary-max": {
         "type": float,
         "required": False
+    },
+    "user_id": {
+        "type": str,
+        "set": read_only,
     },
     "status": {
         "type": str,

@@ -58,10 +58,10 @@ def catching(f):
         #    response.status = 500
         #    print('set error')
         #    return {'error': 'set error'}
-        except ValidationError:
-            response.status = 500
-            print('validation error')
-            return {'error': 'validation error'}
+        #except ValidationError:
+        #    response.status = 500
+        #    print('validation error')
+        #    return {'error': 'validation error'}
         #except PathError:
         #    response.status = 500
         #    print('path error')
@@ -113,7 +113,7 @@ def api_put(route, collection, schema):
             mod = {}
             for data in js['data']:
                 if t == '$pull':
-                    if schema.put(data['path'], old_doc, ""):
+                    if schema.put(data['path'], old_doc, "", True):
                         mod[data['path']] = data['value']    
                 else:
                     doc = schema.put(data['path'], old_doc, data['value'])

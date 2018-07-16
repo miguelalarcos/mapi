@@ -49,6 +49,9 @@ plain_schema = {
         "set": is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
+    "description":{
+        "type": str
+    },
     "email": {
         "type": str,
         "required": True,

@@ -111,6 +111,7 @@ plain_schema = {
     },
     "date":{
         'type': float,
+        'initial': now,
         'set': read_only
     },
     "province":{

@@ -13,7 +13,7 @@ db = client.test_database
 
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
-print(jwt.encode({'user': 'miguel', 'roles': ['user', 'offerer']}, JWT_SECRET, algorithm=JWT_ALGORITHM))
+print(jwt.encode({'user': 'miguel.alarcos@gmail.com', 'roles': ['user', 'offerer']}, JWT_SECRET, algorithm=JWT_ALGORITHM))
 
 @route('/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
