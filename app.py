@@ -1,4 +1,4 @@
-from api import api_get, api_put, api_post, api_get_many, current_user, api_aggregation
+from api import api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
 from bottle import run, debug, default_app, request, hook, response, route, get
 from pymongo import MongoClient
 from offer_schema import OfferSchema
@@ -13,7 +13,7 @@ db = client.test_database
 
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
-print(jwt.encode({'user': 'miguel.alarcos@gmail.com', 'roles': ['user', 'offerer']}, JWT_SECRET, algorithm=JWT_ALGORITHM))
+#print(jwt.encode({'user': 'miguel.alarcos@gmail.com', 'roles': ['user', 'offerer']}, JWT_SECRET, algorithm=JWT_ALGORITHM))
 
 @route('/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
@@ -44,6 +44,7 @@ def offer_post():
 def offer_get_many(params, filter):
     offerer = params['offerer']
     filter['offerer'] = offerer
+    print(filter)
     return None, filter
 
 ###
@@ -57,9 +58,7 @@ def get_many_candidatures(params, filter):
 
 @api_get_many('/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
 def get_many_candidatures(params, filter):
-    print ('*'*10, params['tags'])
     if 'tags' in params:
-        print('entro')
         filter['tags'] = {"$in": params['tags'].split(',')}
     #else: raise
     return None, filter
@@ -83,6 +82,19 @@ def get_candidate(id):
 @api_post('/candidatures', db.candidature, CandidatureSchema)
 def post_candidature():
     pass
+
+
+@get('/login')
+@returns_json
+def get_user():
+    print('get_user')
+    name = request.params['name']
+    doc = db.user.find_one({'email': name}, {'password': 0})
+    print('fetched')
+    doc['jwt'] = (jwt.encode({'user': name}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+    doc['_id'] = str(doc['_id'])
+    return doc
+
 
 @api_aggregation('/message-aggregation', db.candidature)
 def message_aggregation():
@@ -142,5 +154,5 @@ def already_subscribed(offer):
 
 application = default_app()
 if __name__ == '__main__':
-    debug(True)
+    #debug(True)
     run(reloader=True, port=8081)
