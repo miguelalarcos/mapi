@@ -36,6 +36,7 @@ def is_owner(doc):
 
 def current_user_is(prop):
     def helper(root_doc, new_doc=None):
+        print(prop, root_doc[prop], current_user())
         if root_doc[prop] == current_user():
             return True
         else:

@@ -9,7 +9,9 @@ JWT_ALGORITHM = 'HS256'
 
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
+    print(jwt_token)
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    print(jwt_payload)
     return jwt_payload.get('user') 
 
 def current_payload():
