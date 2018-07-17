@@ -127,7 +127,8 @@ class Schema:
                 
                 if required and v is None:
                     raise ValidationError('required')
-                if v is not None and (not type(v) is mtype or not validation(v)):
+                ##if v is not None and (not type(v) is mtype or not validation(v)):
+                if v is not None and (not isinstance(v, mtype) or not validation(v)):
                     raise ValidationError('not valid prop or missing', key)
                 if key in intersection or initial is not None: 
                     ret[key] = document.get(key, initial)
@@ -208,7 +209,9 @@ class Schema:
                 raise SetError('no se puede setear, set')
             if computed is not None:
                 value = computed(root_doc) 
-            if schema == type(value) and validation(value):
+            
+            ##if schema == type(value) and validation(value):
+            if isinstance(value, schema) and validation(value):
                 return value
             else:
                 raise ValidationError('no se puede setear, validation')

@@ -33,7 +33,6 @@ plain_schema = {
     "__set_document": is_owner,
     "__set_default": is_owner,
     "__get_default": public,
-    "__ownership": True,
     "__owners": {
         "type": list,
         "set": read_only,

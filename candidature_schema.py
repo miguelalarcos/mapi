@@ -1,6 +1,7 @@
 from schema import Schema, public, current_user, read_only, default, \
      required, is_owner, now, current_user_is
-from api import has_role
+from api import has_role, current_user_id
+from numbers import Number
 
 plain_schema = {
     "__get_default": is_owner,
@@ -47,7 +48,14 @@ plain_schema = {
     },
     "user_id": {
         "type": str,
+        "initial": current_user_id,
         "set": read_only,
+    },
+    "unread": {
+        "type": bool,
+        "initial": lambda *args: True,
+        "get": is_owner,
+        "set": is_owner
     },
     "company": {
         "type": str,
@@ -77,7 +85,7 @@ plain_schema = {
         "initial": current_user
     },
     "mark": {
-        "type": float
+        "type": Number
     },
     "offerer": {
         "type": str,

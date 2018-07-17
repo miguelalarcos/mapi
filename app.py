@@ -53,11 +53,13 @@ def offer_get_many(params, filter):
 def get_many_candidatures(params, filter):
     if 'offer' in params:
         filter['offer'] = params['offer']
+    #if 'my' in params:
+    #    filter['candidate'] = current_user()
     #else: raise
     return {'messages': 0}, filter
 
 @api_get_many('/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
-def get_many_candidatures(params, filter):
+def get_many_candidatures(params, filter): # get_many_offers
     if 'tags' in params:
         filter['tags'] = {"$in": params['tags'].split(',')}
     #else: raise
@@ -91,7 +93,7 @@ def get_user():
     name = request.params['name']
     doc = db.user.find_one({'email': name}, {'password': 0})
     print('fetched')
-    doc['jwt'] = (jwt.encode({'user': name}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+    doc['jwt'] = (jwt.encode({'user': name, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
     doc['_id'] = str(doc['_id'])
     return doc
 
@@ -111,10 +113,12 @@ def message_aggregation():
         }
         ] 
 
-@api_aggregation('/message-aggregation-offerer', db.candidature)
-def message_aggregation_offerer():
+@api_aggregation('/message-aggregation-candidates/<candidatures>', db.candidature)
+def message_aggregation_candidates(candidatures):
+    candidatures = candidatures.split(',')
+    candidatures = [ObjectId(x) for x in  candidatures]
     return [
-        { "$match": {"offerer": current_user()} }, 
+        { "$match": {"_id": {"$in": candidatures} } }, 
         { "$unwind": "$messages" },
         { "$match": {"messages.unread": True, "messages.owner": {"$ne": current_user()} }},
         {"$group": {
@@ -124,7 +128,35 @@ def message_aggregation_offerer():
                 }
             }
         }
+        ]
+
+@api_aggregation('/message-aggregation-offerer', db.candidature)
+def message_aggregation_offerer():
+    return [
+        { "$match": {"offerer": current_user()} }, 
+        { "$unwind": "$messages" },
+        { "$match": {"messages.unread": True, "messages.owner": {"$ne": current_user()} }},
+        {"$group": {
+            "_id": "$offer", 
+            "total": {
+                "$sum": 1
+                }
+            }
+        }
         ] 
+
+@api_aggregation('/new-candidates/<offer>', db.candidature)
+def new_candidates(offer):
+    return [
+        { "$match": {"offer": {"$in": offer.split(',')}, "unread": True, "status": "open"}}, 
+        {"$group": {
+            "_id": "$offer", 
+            "total": {
+                "$sum": 1
+                }
+            }
+        }
+    ]
 
 @api_aggregation('/total-actives-aggregation/<offer>', db.candidature)
 def total_actives(offer):

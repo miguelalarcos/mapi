@@ -9,10 +9,13 @@ JWT_ALGORITHM = 'HS256'
 
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
-    print(jwt_token)
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    print(jwt_payload)
     return jwt_payload.get('user') 
+
+def current_user_id(*args): 
+    jwt_token = request.headers.get('Authorization')
+    jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    return jwt_payload.get('user_id') 
 
 def current_payload():
     return request.json
@@ -25,6 +28,9 @@ def has_role(role):
     return helper
 
 class ArgumentError(Exception):
+    pass
+
+class NoneDocError(Exception):
     pass
 
 def dumps(obj):
@@ -56,6 +62,10 @@ def catching(f):
             response.status = 500
             print('argument error')
             return {'error': 'argument error'}
+        except NoneDocError:
+            response.status = 500
+            print('none doc error')
+            return {'error': 'none doc error'}
         #except SetError:
         #    response.status = 500
         #    print('set error')
@@ -81,9 +91,11 @@ def api_get(route, collection, schema):
         @returns_json
         @catching
         def helper(id):
+            print('*'*10, id)
             response.status = 200
             id = ObjectId(id)
             filter = {"_id": id}
+            print(schema.schema)
             if schema['__ownership']:
                 filter.update({'__owners': current_user()})
             proj = f(id)
@@ -91,7 +103,12 @@ def api_get(route, collection, schema):
                 doc = collection.find_one(filter, proj)
             else:
                 doc = collection.find_one(filter)
+            if doc is None:
+                print(filter, 'None doc')
+                raise NoneDocError('no document found')
             doc['_id'] = str(id)
+            print (doc)
+            print('*'*10)
             return schema.get(doc)
         return helper
     return decorator
@@ -102,31 +119,40 @@ def api_put(route, collection, schema):
         @returns_json
         @catching
         def helper(id):
+            #print('entro')
             response.status = 201
             id = ObjectId(id)
             old_doc = collection.find_one({"_id": id})
+            #print('old doc', old_doc)
+            if old_doc is None:
+                raise NoneDocError('no document found')
             js = current_payload()
-            
+            #print('current payload', js)
             t = '$set'
             if js['type'] == '$push':
                 t = '$push'
             elif js['type'] == '$pull':
                 t = '$pull'
             mod = {}
+            #print('t', t)
             for data in js['data']:
                 if t == '$pull':
                     if schema.put(data['path'], old_doc, "", True):
                         mod[data['path']] = data['value']    
                 else:
+                    #print('else')
                     doc = schema.put(data['path'], old_doc, data['value'])
                     mod[data['path']] = doc       
             
+            #print('previo update one', id, t, mod)
             collection.update_one({"_id": id}, {t: mod})
             proj = f()
             if proj:
                 doc = collection.find_one({"_id": id}, proj)
+                #print('doc al final', doc, proj)
             else:
                 doc = collection.find_one({"_id": id})
+                #print('doc al final, doc')
             doc['_id'] = str(id)
             return schema.get(doc)
         return helper
