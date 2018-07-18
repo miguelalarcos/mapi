@@ -13,7 +13,7 @@ plain_schema = {
     "__set_default": public,
     "__get": public,
     "__set": is_owner,
-    "__owners": {
+    "__owners": { 
         "type": list,
         "set": read_only,
         "initial": lambda ctx: [current_user()]
