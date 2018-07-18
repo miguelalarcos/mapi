@@ -1,5 +1,6 @@
-from schema import Schema, public, current_user, read_only, default, required, is_owner, now
-from api import has_role
+from schema import Schema, public, current_user, read_only, default, required,\
+                   is_owner, now
+from api import has_role, current_user_id
 
 def provinces():
     #access mongo or not
@@ -7,6 +8,7 @@ def provinces():
 
 plain_schema = {
     "__ownership": False,
+    "__set_document": is_owner,
     "__create_document": has_role('offerer'),
     "__set_default": public,
     "__get": public,
@@ -63,6 +65,7 @@ plain_schema = {
     },
     "user_id": {
         "type": str,
+        "initial": current_user_id,
         "set": read_only,
     },
     "status": {

@@ -26,7 +26,9 @@ def getRoot(*args, **kwargs):
 #def get_offer():
 #    pass
 
-#@api_put('/offer/<id>', db.offer, OfferSchema)
+@api_put('/offer/<id>', db.offer, OfferSchema)
+def put_offer():
+    pass
 
 @api_put('/candidature-message/<id>', db.candidature, CandidatureSchema)
 def put_candidature():
@@ -44,7 +46,6 @@ def offer_post():
 def offer_get_many(params, filter):
     offerer = params['offerer']
     filter['offerer'] = offerer
-    print(filter)
     return None, filter
 
 ###
@@ -53,8 +54,8 @@ def offer_get_many(params, filter):
 def get_many_candidatures(params, filter):
     if 'offer' in params:
         filter['offer'] = params['offer']
-    #if 'my' in params:
-    #    filter['candidate'] = current_user()
+    if 'my' in params:
+        filter['candidate'] = current_user()
     #else: raise
     return {'messages': 0}, filter
 
@@ -89,10 +90,8 @@ def post_candidature():
 @get('/login')
 @returns_json
 def get_user():
-    print('get_user')
     name = request.params['name']
-    doc = db.user.find_one({'email': name}, {'password': 0})
-    print('fetched')
+    doc = db.user.find_one({'email': name}, {'password': 0})    
     doc['jwt'] = (jwt.encode({'user': name, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
     doc['_id'] = str(doc['_id'])
     return doc

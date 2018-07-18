@@ -91,11 +91,9 @@ def api_get(route, collection, schema):
         @returns_json
         @catching
         def helper(id):
-            print('*'*10, id)
             response.status = 200
             id = ObjectId(id)
             filter = {"_id": id}
-            print(schema.schema)
             if schema['__ownership']:
                 filter.update({'__owners': current_user()})
             proj = f(id)
@@ -104,11 +102,8 @@ def api_get(route, collection, schema):
             else:
                 doc = collection.find_one(filter)
             if doc is None:
-                print(filter, 'None doc')
                 raise NoneDocError('no document found')
             doc['_id'] = str(id)
-            print (doc)
-            print('*'*10)
             return schema.get(doc)
         return helper
     return decorator

@@ -36,7 +36,6 @@ def is_owner(doc):
 
 def current_user_is(prop):
     def helper(root_doc, new_doc=None):
-        print(prop, root_doc[prop], current_user())
         if root_doc[prop] == current_user():
             return True
         else:
@@ -216,42 +215,3 @@ class Schema:
             else:
                 raise ValidationError('no se puede setear, validation')
 
-if __name__ == '__main__':
-    sch = {
-        '__set_document': public,
-        'a': {
-            'type': int,
-            'set': public,
-            'validation': lambda v: v > 5
-        },
-        'date': {
-            'type': float,
-            'set': public,
-            'computed': now
-        }
-    }
-    A = Schema(sch)
-    sch = {
-        'b': {
-            'get': hidden,
-            'set': public,
-            'type': [A]
-        },
-    }
-    B = Schema(sch)
-
-    doc = {
-        'b': [{
-            'a': 7
-        }
-        ]
-    }
-
-    #val = B.put('b.0', doc, {'a': 7})
-    #print(val)
-
-    #val = B.post(doc)
-    #print(val)
-
-    val = B.get(doc)
-    print(val)
