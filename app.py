@@ -18,7 +18,7 @@ MONGO_URL = os.getenv("MONGO_URL")
 
 
 client = MongoClient(MONGO_URL)
-db = client.test_database
+db = client["trabajo-mas-mas-backend-5329"]
 
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
