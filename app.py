@@ -13,10 +13,11 @@ import os
 
 from dotenv import load_dotenv
 load_dotenv()
-PORT = os.getenv("PORT")
+
+MONGO_URL = os.getenv("MONGO_URL")
 
 
-client = MongoClient()
+client = MongoClient(MONGO_URL)
 db = client.test_database
 
 JWT_SECRET = 'secret'
@@ -207,4 +208,5 @@ def already_subscribed(offer):
 application = default_app()
 if __name__ == '__main__':
     #debug(True)
+    PORT = os.getenv("PORT")
     run(reloader=True, port=PORT)
