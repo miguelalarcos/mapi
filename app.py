@@ -1,48 +1,58 @@
 from api import api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
-from bottle import run, debug, default_app, request, hook, response, route, get
+from bottle import run, debug, default_app, request, hook, response, route, get, put
 from pymongo import MongoClient
 from offer_schema import OfferSchema
 from candidature_schema import CandidatureSchema
+from tag_schema import TagSchema
 from user_schema import UserSchema
 import jwt 
 import json
 from bson.objectid import ObjectId
+import re
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
+PORT = os.getenv("PORT")
+
 
 client = MongoClient()
 db = client.test_database
 
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
-#print(jwt.encode({'user': 'miguel.alarcos@gmail.com', 'roles': ['user', 'offerer']}, JWT_SECRET, algorithm=JWT_ALGORITHM))
 
-@route('/<:re:.*>', method='OPTIONS')
+#@route('/<:re:.*>', method='OPTIONS')
+#def getRoot(*args, **kwargs):
+#    response.headers['Access-Control-Allow-Origin'] = '*'
+#    response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
+#    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+
+@route('/api/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
 
-#@api_get('/offer/<id>', db.offer, OfferSchema)
-#def get_offer():
-#    pass
 
-@api_put('/offer/<id>', db.offer, OfferSchema)
+@api_put('/api/offer/<id>', db.offer, OfferSchema)
 def put_offer():
     pass
 
-@api_put('/candidature-message/<id>', db.candidature, CandidatureSchema)
+@api_put('/api/candidature-message/<id>', db.candidature, CandidatureSchema)
 def put_candidature():
     return {'messages': 1, 'offerer': 1, '__owners': 1}
 
-@api_put('/candidature/<id>', db.candidature, CandidatureSchema)
+@api_put('/api/candidature/<id>', db.candidature, CandidatureSchema)
 def put_candidature_prop():
     return {'messages': 0}
 
-@api_post('/offers',db.offer, OfferSchema)
+@api_post('/api/offers',db.offer, OfferSchema)
 def offer_post():
     pass
     
-@api_get_many('/offers/<offset:int>/<limit:int>',db.offer, OfferSchema, max_limit=10)
+@api_get_many('/api/offers/<offset:int>/<limit:int>',db.offer, OfferSchema, max_limit=10)
 def offer_get_many(params, filter):
     offerer = params['offerer']
     filter['offerer'] = offerer
@@ -50,7 +60,7 @@ def offer_get_many(params, filter):
 
 ###
 
-@api_get_many('/candidatures/<offset:int>/<limit:int>', db.candidature, CandidatureSchema, max_limit=10)
+@api_get_many('/api/candidatures/<offset:int>/<limit:int>', db.candidature, CandidatureSchema, max_limit=10)
 def get_many_candidatures(params, filter):
     if 'offer' in params:
         filter['offer'] = params['offer']
@@ -59,35 +69,46 @@ def get_many_candidatures(params, filter):
     #else: raise
     return {'messages': 0}, filter
 
-@api_get_many('/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
+@api_get_many('/api/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
 def get_many_candidatures(params, filter): # get_many_offers
     if 'tags' in params:
         filter['tags'] = {"$in": params['tags'].split(',')}
     #else: raise
     return None, filter
 
-@api_get('/candidature/<id>', db.candidature, CandidatureSchema)
+@api_get_many('/api/tags/<offset:int>/<limit:int>', db.tags, TagSchema, max_limit=10)
+def get_many_candidatures(params, filter): # get_many_offers
+    if 'value' in params:
+        filter['tag'] = re.compile('^' + params['value'] + '.*', re.IGNORECASE)
+    #else: raise
+    return {"tag": 1}, filter
+
+@put('/api/tags/<tag>')
+def upsert_tag(tag):
+    db.tags.update({"tag": tag}, {"$inc": {"total": 1}}, True)
+
+@api_get('/api/candidature/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
     return {'messages': 0}
 
-@api_put('/add-experience/<id>', db.user, UserSchema)
+@api_put('/api/add-experience/<id>', db.user, UserSchema)
 def append_experience():
     pass
 
-@api_get('/candidature-with-messages/<id>', db.candidature, CandidatureSchema)
+@api_get('/api/candidature-with-messages/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
     pass
 
-@api_get('/candidate/<id>', db.user, UserSchema)
+@api_get('/api/candidate/<id>', db.user, UserSchema)
 def get_candidate(id):
     return {"password": 0}
 
-@api_post('/candidatures', db.candidature, CandidatureSchema)
+@api_post('/api/candidatures', db.candidature, CandidatureSchema)
 def post_candidature():
     pass
 
 
-@get('/login')
+@get('/api/login')
 @returns_json
 def get_user():
     name = request.params['name']
@@ -97,7 +118,7 @@ def get_user():
     return doc
 
 
-@api_aggregation('/message-aggregation', db.candidature)
+@api_aggregation('/api/message-aggregation', db.candidature)
 def message_aggregation():
     return [
         { "$match": {"candidate": current_user()} }, 
@@ -112,7 +133,7 @@ def message_aggregation():
         }
         ] 
 
-@api_aggregation('/message-aggregation-candidates/<candidatures>', db.candidature)
+@api_aggregation('/api/message-aggregation-candidates/<candidatures>', db.candidature)
 def message_aggregation_candidates(candidatures):
     candidatures = candidatures.split(',')
     candidatures = [ObjectId(x) for x in  candidatures]
@@ -129,7 +150,7 @@ def message_aggregation_candidates(candidatures):
         }
         ]
 
-@api_aggregation('/message-aggregation-offerer', db.candidature)
+@api_aggregation('/api/message-aggregation-offerer', db.candidature)
 def message_aggregation_offerer():
     return [
         { "$match": {"offerer": current_user()} }, 
@@ -144,7 +165,7 @@ def message_aggregation_offerer():
         }
         ] 
 
-@api_aggregation('/new-candidates/<offer>', db.candidature)
+@api_aggregation('/api/new-candidates/<offer>', db.candidature)
 def new_candidates(offer):
     return [
         { "$match": {"offer": {"$in": offer.split(',')}, "unread": True, "status": "open"}}, 
@@ -157,7 +178,7 @@ def new_candidates(offer):
         }
     ]
 
-@api_aggregation('/total-actives-aggregation/<offer>', db.candidature)
+@api_aggregation('/api/total-actives-aggregation/<offer>', db.candidature)
 def total_actives(offer):
     return [
         { "$match": {"offer": {"$in": offer.split(',')}, "status": "open"}}, 
@@ -170,7 +191,7 @@ def total_actives(offer):
         }
         ] 
 
-@api_aggregation('/already-subscribed-aggregation/<offer>', db.candidature)
+@api_aggregation('/api/already-subscribed-aggregation/<offer>', db.candidature)
 def already_subscribed(offer):
     return [
         { "$match": {"offer": {"$in": offer.split(',')}, "status": "open", "candidate": current_user()}}, 
@@ -186,4 +207,4 @@ def already_subscribed(offer):
 application = default_app()
 if __name__ == '__main__':
     #debug(True)
-    run(reloader=True, port=8081)
+    run(reloader=True, port=PORT)

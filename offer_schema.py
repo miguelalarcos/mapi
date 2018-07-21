@@ -9,7 +9,7 @@ def provinces():
 plain_schema = {
     "__ownership": False,
     "__set_document": is_owner,
-    "__create_document": has_role('offerer'),
+    #"__create_document": has_role('offerer'),
     "__set_default": public,
     "__get": public,
     "__set": is_owner,
@@ -29,17 +29,18 @@ plain_schema = {
     },
     "title": {
         "type": str,
-        "required": True,
-        "validation": lambda v: 0 < len(v) <= 30
+        #"required": True,
+        "validation": lambda v: len(v) <= 30
     },
     "description": {
         "type": str,
-        "required": True,
-        "validation": lambda v: 0 < len(v) <= 1000
+        #"required": True,
+        "validation": lambda v: len(v) <= 1000
     },
     "tags": {
         "type": list,
-        "required": True
+        "initial": lambda ctx: []
+        #"required": True
     },
     "province": {
         "type": str,
@@ -47,13 +48,13 @@ plain_schema = {
     },
     "remote": {
         "type": bool,
-        "required": True,
+        #"required": True,
     },
     "questions": {
         "type": str,
         "get": is_owner,
         "required": False,
-        "validation": lambda v: 0 < len(v) < 1000
+        "validation": lambda v: len(v) < 1000
     },
     "salary-min": {
         "type": float,
@@ -70,9 +71,9 @@ plain_schema = {
     },
     "status": {
         "type": str,
-        "initial": default('open'),
-        "required": True,
-        "validation": lambda v: v in ['open', 'closed']
+        "initial": default('draft'),
+        #"required": True,
+        "validation": lambda v: v in ['draft', 'open', 'closed']
     },
     "created_at": {
         "type": float,

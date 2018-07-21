@@ -45,7 +45,7 @@ def current_user_is(prop):
 class Schema:
     def __init__(self, schema):
         self.schema = schema
-        self.kw = ['__get', '__set_document', '__get_document', \
+        self.kw = ['__get', '__set', '__set_document', '__get_document', \
                    '__create_document', '__ownership', '__set_default', \
                    '__get_default']
 
