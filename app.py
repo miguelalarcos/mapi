@@ -13,11 +13,12 @@ import os
 
 from dotenv import load_dotenv
 load_dotenv()
-PORT = os.getenv("PORT")
+
+MONGO_URL = os.getenv("MONGO_URL")
 
 
-client = MongoClient()
-db = client.test_database
+client = MongoClient(MONGO_URL)
+db = client["trabajo-mas-mas-backend-5329"]
 
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
@@ -112,10 +113,13 @@ def post_candidature():
 @returns_json
 def get_user():
     name = request.params['name']
-    doc = db.user.find_one({'email': name}, {'password': 0})    
-    doc['jwt'] = (jwt.encode({'user': name, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
-    doc['_id'] = str(doc['_id'])
-    return doc
+    doc = db.user.find_one({'email': name}, {'password': 0})  
+    if doc:  
+        doc['jwt'] = (jwt.encode({'user': name, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+        doc['_id'] = str(doc['_id'])
+        return doc
+    else:
+        return {'msg': 'user not found'}
 
 
 @api_aggregation('/api/message-aggregation', db.candidature)
@@ -207,4 +211,5 @@ def already_subscribed(offer):
 application = default_app()
 if __name__ == '__main__':
     #debug(True)
+    PORT = os.getenv("PORT")
     run(reloader=True, port=PORT)
