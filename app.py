@@ -10,18 +10,21 @@ import json
 from bson.objectid import ObjectId
 import re
 import os
+from api import ArgumentError
 
 from dotenv import load_dotenv
 load_dotenv()
 
 MONGO_URL = os.getenv("MONGO_URL")
-
+DATA_BASE= os.getenv("DATA_BASE")
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 client = MongoClient(MONGO_URL)
-db = client["trabajo-mas-mas-backend-5329"]
+db = client[DATA_BASE]
 
-JWT_SECRET = 'secret'
-JWT_ALGORITHM = 'HS256'
+#JWT_SECRET = 'secret'
+#JWT_ALGORITHM = 'HS256'
 
 #@route('/<:re:.*>', method='OPTIONS')
 #def getRoot(*args, **kwargs):
@@ -81,8 +84,9 @@ def get_many_candidatures(params, filter): # get_many_offers
 def get_many_candidatures(params, filter): # get_many_offers
     if 'value' in params:
         filter['tag'] = re.compile('^' + params['value'] + '.*', re.IGNORECASE)
-    #else: raise
-    return {"tag": 1}, filter
+    else:
+        raise ArgumentError('name not in keywords')
+    return None, filter
 
 @put('/api/tags/<tag>')
 def upsert_tag(tag):
