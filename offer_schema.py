@@ -1,5 +1,6 @@
-from schema import Schema, public, current_user, read_only, default, required, is_owner, now
-from api import has_role
+from schema import Schema, public, current_user, read_only, default, required,\
+                   is_owner, now
+from api import has_role, current_user_id
 
 def provinces():
     #access mongo or not
@@ -7,14 +8,15 @@ def provinces():
 
 plain_schema = {
     "__ownership": False,
-    "__create_document": has_role('offerer'),
+    "__set_document": is_owner,
+    #"__create_document": has_role('offerer'),
     "__set_default": public,
     "__get": public,
     "__set": is_owner,
-    "__owners": {
+    "__owners": { 
         "type": list,
         "set": read_only,
-        "initial": lambda *args: [current_user()]
+        "initial": lambda ctx: [current_user()]
     },
     "_id": {
         "type": str,
@@ -27,15 +29,18 @@ plain_schema = {
     },
     "title": {
         "type": str,
-        "validation": lambda v: required(v) and type(v) is str and 0 < len(v) <= 30
+        #"required": True,
+        "validation": lambda v: len(v) <= 30
     },
     "description": {
         "type": str,
-        "validation": lambda v: required(v) and type(v) is str and 0 < len(v) <= 250
+        #"required": True,
+        "validation": lambda v: len(v) <= 1000
     },
     "tags": {
         "type": list,
-        "validation": lambda v: required(v) and type(v) is list
+        "initial": lambda ctx: []
+        #"required": True
     },
     "province": {
         "type": str,
@@ -43,21 +48,32 @@ plain_schema = {
     },
     "remote": {
         "type": bool,
-        "validation": lambda v: required(v) and type(v) is bool
+        #"required": True,
     },
     "questions": {
         "type": str,
         "get": is_owner,
-        "validation": lambda v: not v or type(v) is str and 0 < len(v) < 1000
+        "required": False,
+        "validation": lambda v: len(v) < 1000
     },
-    "salary": {
+    "salary-min": {
+        "type": float,
+        "required": False
+    },
+    "salary-max": {
+        "type": float,
+        "required": False
+    },
+    "user_id": {
         "type": str,
-        "validation": lambda v: not v or type(v) is str and 0 <= len(v) <= 20
+        "initial": current_user_id,
+        "set": read_only,
     },
     "status": {
         "type": str,
-        "initial": default('open'),
-        "validation": lambda v: v in ['open', 'closed']
+        "initial": default('draft'),
+        #"required": True,
+        "validation": lambda v: v in ['draft', 'open', 'closed']
     },
     "created_at": {
         "type": float,
