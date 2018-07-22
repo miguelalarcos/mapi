@@ -213,5 +213,5 @@ class Schema:
             if isinstance(value, schema) and validation(value):
                 return value
             else:
-                raise ValidationError('no se puede setear, validation')
+                raise ValidationError('no se puede setear, validation', value)
 

@@ -1,4 +1,4 @@
-from api import api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
+from api import returns_json, api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
 from bottle import run, debug, default_app, request, hook, response, route, get, put
 from pymongo import MongoClient
 from offer_schema import OfferSchema
@@ -89,8 +89,10 @@ def get_many_candidatures(params, filter): # get_many_offers
     return None, filter
 
 @put('/api/tags/<tag>')
+@returns_json
 def upsert_tag(tag):
     db.tags.update({"tag": tag}, {"$inc": {"total": 1}}, True)
+    return {"upsert tag": tag}
 
 @api_get('/api/candidature/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
