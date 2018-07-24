@@ -80,6 +80,10 @@ plain_schema = {
     "tags": {
         "type": list
     },
+    "answers": {
+        "type": list,
+        "validation": lambda v: len(v) < 100
+    },
     "candidate": {
         "type": str,
         "initial": current_user

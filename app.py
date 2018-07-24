@@ -1,4 +1,4 @@
-from api import returns_json, api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
+from api import after_put, returns_json, api_get, api_put, api_post, api_get_many, current_user, api_aggregation, returns_json
 from bottle import run, debug, default_app, request, hook, response, route, get, put
 from pymongo import MongoClient
 from offer_schema import OfferSchema
@@ -11,6 +11,7 @@ from bson.objectid import ObjectId
 import re
 import os
 from api import ArgumentError
+import requests
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,6 +20,8 @@ MONGO_URL = os.getenv("MONGO_URL")
 DATA_BASE= os.getenv("DATA_BASE")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+CLIENT_ID_GITHUB = os.getenv("CLIENT_ID_GITHUB")
+CLIENT_SECRET_GITHUB = os.getenv("CLIENT_SECRET_GITHUB")
 
 client = MongoClient(MONGO_URL)
 db = client[DATA_BASE]
@@ -47,6 +50,10 @@ def put_offer():
 @api_put('/api/candidature-message/<id>', db.candidature, CandidatureSchema)
 def put_candidature():
     return {'messages': 1, 'offerer': 1, '__owners': 1}
+
+@after_put('/api/candidature-message/<id>')
+def after_put_message(doc):
+    print(doc)
 
 @api_put('/api/candidature/<id>', db.candidature, CandidatureSchema)
 def put_candidature_prop():
@@ -114,17 +121,24 @@ def get_candidate(id):
 def post_candidature():
     pass
 
-
 @get('/api/login')
 @returns_json
 def get_user():
-    name = request.params['name']
-    doc = db.user.find_one({'email': name}, {'password': 0})  
+    code = request.params['code']
+    data = {"client_id": CLIENT_ID_GITHUB, "client_secret": CLIENT_SECRET_GITHUB, "code": code}
+    res = requests.post("https://github.com/login/oauth/access_token", data=data)
+    patt = re.compile("access_token=(?P<token>.+)&")
+    token = patt.match(res.text).group('token')
+    res = requests.get("https://api.github.com/user?scope=user:email&access_token=" + token)
+    data = json.loads(res.text)
+    email = data['email']
+    doc = db.user.find_one({'email': email}, {'password': 0})  
     if doc:  
-        doc['jwt'] = (jwt.encode({'user': name, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+        doc['jwt'] = (jwt.encode({'user': email, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
         doc['_id'] = str(doc['_id'])
         return doc
     else:
+        #habria que crear al usuario con la info recibida de github
         return {'msg': 'user not found'}
 
 
@@ -216,6 +230,6 @@ def already_subscribed(offer):
 
 application = default_app()
 if __name__ == '__main__':
-    #debug(True)
+    debug(True)
     PORT = os.getenv("PORT")
     run(reloader=True, port=PORT)

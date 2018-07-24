@@ -42,6 +42,11 @@ plain_schema = {
         "initial": lambda ctx: []
         #"required": True
     },
+    "questions": {
+        "type": list,
+        "initial": lambda *args: [],
+        "validation": lambda v: len(v) < 100
+    },
     "province": {
         "type": str,
         "validation": lambda v: v in provinces()

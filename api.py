@@ -7,6 +7,16 @@ from errors import SetError, ValidationError, PathError
 JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
 
+after_put_hooks = {}
+
+def after_put(route):
+    def decorator(f):
+        def helper(*args, **kwargs):
+            f(*args, **kwargs)
+        after_put_hooks[route] = helper
+        return helper
+    return decorator
+
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -114,42 +124,38 @@ def api_put(route, collection, schema):
         @returns_json
         @catching
         def helper(id):
-            #print('entro')
             response.status = 201
             id = ObjectId(id)
             old_doc = collection.find_one({"_id": id})
-            #print('old doc', old_doc)
             if old_doc is None:
                 raise NoneDocError('no document found')
             js = current_payload()
-            #print('current payload', js)
             t = '$set'
             if js['type'] == '$push':
                 t = '$push'
             elif js['type'] == '$pull':
                 t = '$pull'
             mod = {}
-            #print('t', t)
             for data in js['data']:
                 if t == '$pull':
                     if schema.put(data['path'], old_doc, "", True):
                         mod[data['path']] = data['value']    
                 else:
-                    #print('else')
                     doc = schema.put(data['path'], old_doc, data['value'])
                     mod[data['path']] = doc       
             
-            #print('previo update one', id, t, mod)
             collection.update_one({"_id": id}, {t: mod})
             proj = f()
             if proj:
                 doc = collection.find_one({"_id": id}, proj)
-                #print('doc al final', doc, proj)
             else:
                 doc = collection.find_one({"_id": id})
-                #print('doc al final, doc')
             doc['_id'] = str(id)
-            return schema.get(doc)
+            doc = schema.get(doc)
+            hook = after_put_hooks.get(route)
+            if hook:
+                hook(doc)
+            return doc
         return helper
     return decorator
 
