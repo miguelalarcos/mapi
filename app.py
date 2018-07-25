@@ -81,25 +81,25 @@ def get_many_candidatures(params, filter):
     return {'messages': 0}, filter
 
 @api_get_many('/api/search-offers/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
-def get_many_candidatures(params, filter): # get_many_offers
+def get_many_search_offers(params, filter):
     if 'tags' in params:
         filter['tags'] = {"$in": params['tags'].split(',')}
     #else: raise
     return None, filter
 
-@api_get_many('/api/tags/<offset:int>/<limit:int>', db.tags, TagSchema, max_limit=10)
-def get_many_candidatures(params, filter): # get_many_offers
-    if 'value' in params:
-        filter['tag'] = re.compile('^' + params['value'] + '.*', re.IGNORECASE)
-    else:
-        raise ArgumentError('name not in keywords')
-    return None, filter
+#@api_get_many('/api/tags/<offset:int>/<limit:int>', db.tags, TagSchema, max_limit=10)
+#def get_many_tags(params, filter): # get_many_offers
+#    if 'value' in params:
+#        filter['tag'] = re.compile('^' + params['value'] + '.*', re.IGNORECASE)
+#    else:
+#        raise ArgumentError('name not in keywords')
+#    return None, filter
 
-@put('/api/tags/<tag>')
-@returns_json
-def upsert_tag(tag):
-    db.tags.update({"tag": tag}, {"$inc": {"total": 1}}, True)
-    return {"upsert tag": tag}
+#@put('/api/tags/<tag>')
+#@returns_json
+#def upsert_tag(tag):
+#    db.tags.update({"tag": tag}, {"$inc": {"total": 1}}, True)
+#    return {"upsert tag": tag}
 
 @api_get('/api/candidature/<id>', db.candidature, CandidatureSchema)
 def get_candidature(id):
@@ -131,10 +131,10 @@ def get_user():
     token = patt.match(res.text).group('token')
     res = requests.get("https://api.github.com/user?scope=user:email&access_token=" + token)
     data = json.loads(res.text)
-    email = data['email']
-    doc = db.user.find_one({'email': email}, {'password': 0})  
+    login = data['login']
+    doc = db.user.find_one({'login': login}, {'password': 0})  
     if doc:  
-        doc['jwt'] = (jwt.encode({'user': email, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+        doc['jwt'] = (jwt.encode({'user': login, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
         doc['_id'] = str(doc['_id'])
         return doc
     else:

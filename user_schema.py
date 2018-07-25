@@ -6,7 +6,7 @@ plain_schema = {
     "__get_default": public,
     "__set_default": is_owner,
     "tags": {
-        "type": str,
+        "type": list,
         "required": True
     },
     "description": {
@@ -50,6 +50,12 @@ plain_schema = {
     },
     "description":{
         "type": str
+    },
+    "login": {
+        "type": str,
+        "required": True,
+        "set": is_owner,
+        "validation": lambda v: 0 <= len(v) <= 30
     },
     "email": {
         "type": str,

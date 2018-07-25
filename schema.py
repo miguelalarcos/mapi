@@ -58,6 +58,8 @@ class Schema:
             root_doc = document
         
         g = get_default = self.schema.get('__get_default', public)
+        default_value = get_default(root_doc)
+        get_default = lambda *args: default_value
         schema = self.schema
         #g = schema.get('__get', get_default)
         if not g(root_doc):
@@ -145,6 +147,8 @@ class Schema:
             raise SetError('no se puede setear, __set')
         
         set_default = schema.get('__set_default', never)
+        default_value = set_default(root_doc)
+        set_default = lambda *args: default_value
         validation = public
         computed = None
 
