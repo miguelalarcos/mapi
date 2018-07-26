@@ -3,6 +3,7 @@ from bottle import run, debug, default_app, request, hook, response, route, get,
 from pymongo import MongoClient
 from offer_schema import OfferSchema
 from candidature_schema import CandidatureSchema
+from project_schema import ProjectSchema
 from tag_schema import TagSchema
 from user_schema import UserSchema
 import jwt 
@@ -26,22 +27,18 @@ CLIENT_SECRET_GITHUB = os.getenv("CLIENT_SECRET_GITHUB")
 client = MongoClient(MONGO_URL)
 db = client[DATA_BASE]
 
-#JWT_SECRET = 'secret'
-#JWT_ALGORITHM = 'HS256'
-
-#@route('/<:re:.*>', method='OPTIONS')
-#def getRoot(*args, **kwargs):
-#    response.headers['Access-Control-Allow-Origin'] = '*'
-#    response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
-#    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
-
 @route('/api/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
-
+@api_get_many('/api/users', db.user, UserSchema)
+def user_get_many(params, filter):
+    tags = params['tags']
+    tags = tags.split(',')
+    filter['tags'] = tags
+    return {'email': 1, 'experience': 1}, filter
 
 @api_put('/api/offer/<id>', db.offer, OfferSchema)
 def put_offer():
@@ -53,6 +50,18 @@ def put_candidature():
 
 @after_put('/api/candidature-message/<id>')
 def after_put_message(doc):
+    print(doc)
+
+@api_put('/api/project/<id>', db.project, ProjectSchema)
+def put_project_prop():
+    return {'messages': 0}
+
+@api_put('/api/project-message/<id>', db.project, ProjectSchema)
+def put_project():
+    return {'messages': 1, 'offerer': 1, '__owners': 1}
+
+@after_put('/api/project-message/<id>')
+def after_put_message_in_project(doc):
     print(doc)
 
 @api_put('/api/candidature/<id>', db.candidature, CandidatureSchema)
@@ -87,6 +96,14 @@ def get_many_search_offers(params, filter):
     #else: raise
     return None, filter
 
+
+@api_get_many('/api/search-projects/<offset:int>/<limit:int>', db.offer, OfferSchema, max_limit=10)
+def get_many_search_projects(params, filter):
+    if 'tags' in params:
+        filter['tags'] = {"$in": params['tags'].split(',')}
+    #else: raise
+    return None, filter
+
 #@api_get_many('/api/tags/<offset:int>/<limit:int>', db.tags, TagSchema, max_limit=10)
 #def get_many_tags(params, filter): # get_many_offers
 #    if 'value' in params:
@@ -107,6 +124,10 @@ def get_candidature(id):
 
 @api_put('/api/add-experience/<id>', db.user, UserSchema)
 def append_experience():
+    pass
+
+@api_get('/api/project-with-messages/<id>', db.project, ProjectSchema)
+def get_project(id):
     pass
 
 @api_get('/api/candidature-with-messages/<id>', db.candidature, CandidatureSchema)

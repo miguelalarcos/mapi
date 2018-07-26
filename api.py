@@ -118,6 +118,30 @@ def api_get(route, collection, schema):
         return helper
     return decorator
 
+def api_get_unique(route, collection, schema):
+    def decorator(f):
+        @get(route)
+        @returns_json
+        @catching
+        def helper(unique, value):
+            response.status = 200
+            id = ObjectId(id)
+            filter = {}
+            filter[unique] = value
+            if schema['__ownership']:
+                filter.update({'__owners': current_user()})
+            proj = f(id)
+            if proj:
+                doc = collection.find_one(filter, proj)
+            else:
+                doc = collection.find_one(filter)
+            if doc is None:
+                raise NoneDocError('no document found')
+            doc['_id'] = str(id)
+            return schema.get(doc)
+        return helper
+    return decorator
+
 def api_put(route, collection, schema):
     def decorator(f):
         @put(route)

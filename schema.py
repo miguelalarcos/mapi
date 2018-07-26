@@ -203,7 +203,7 @@ class Schema:
                 if not sett(root_doc): #schema[k].get('set', set_default)(root_doc):
                     raise SetError('no se puede setear, set')
                 if 'computed' in schema[k]:
-                    value[k] = schema[k]['computed'](root_doc) #(value)   
+                    value[k] = schema[k]['computed'](value) #(value)   
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
@@ -211,7 +211,7 @@ class Schema:
             if not to_set(root_doc):
                 raise SetError('no se puede setear, set')
             if computed is not None:
-                value = computed(root_doc) 
+                value = computed(value) 
             
             ##if schema == type(value) and validation(value):
             if isinstance(value, schema) and validation(value):

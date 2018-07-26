@@ -10,9 +10,9 @@ plain_schema = {
     "__ownership": False,
     "__set_document": is_owner,
     #"__create_document": has_role('offerer'),
-    "__set_default": public,
-    "__get": public,
-    "__set": is_owner,
+    "__set_default": is_owner,
+    #"__get": public,
+    #"__set": is_owner,
     "__owners": { 
         "type": list,
         "set": read_only,
@@ -54,12 +54,6 @@ plain_schema = {
     "remote": {
         "type": bool,
         #"required": True,
-    },
-    "questions": {
-        "type": str,
-        "get": is_owner,
-        "required": False,
-        "validation": lambda v: len(v) < 1000
     },
     "salary-min": {
         "type": float,

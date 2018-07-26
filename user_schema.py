@@ -18,18 +18,16 @@ plain_schema = {
 
 Experience = Schema(plain_schema)
 
-def tags(doc):
-    s = set()
-    for exp in doc['experience']:
-        exps = exp['tags'].split(',')
-        exps = [e.strip() for e in exps if e != '']
-        for e in exps:
-            s.add(e)
-    return list(s)
+#def tags(doc):
+#    s = set()
+#    for exp in doc['experience']:
+#        exps = exp['tags']
+#        for e in exps:
+#            s.add(e)
+#    return list(s)
 
 plain_schema = {
     "__ownership": False,
-    #"__create_document": has_role('offerer'),
     "__set_document": is_owner,
     "__set_default": is_owner,
     "__get_default": public,
@@ -45,7 +43,6 @@ plain_schema = {
     "name": {
         "type": str,
         "required": True,
-        "set": is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
     "description":{
@@ -54,13 +51,10 @@ plain_schema = {
     "login": {
         "type": str,
         "required": True,
-        "set": is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
     "email": {
         "type": str,
-        "required": True,
-        "set": is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
     "password": {
@@ -68,23 +62,24 @@ plain_schema = {
         "get": never,
         "set": never
     },
-    "tags": {
+    "invited": {
         "type": list,
-        "computed": lambda doc: tags(doc)
+        "set": public,
+        "get": public
+    },
+    "tags": {
+        "type": list
+        #"computed": lambda doc: tags(doc)
     },
     "phone": {
         "type": str,
-        "required": True,
-        "set": is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
     "experience": {
         "type": [Experience],
-        "set": is_owner
     },
     "province":{
         'type': str,
-        'set': is_owner,
         "validation": lambda v: 0 <= len(v) <= 30
     },
     "created_at": {
