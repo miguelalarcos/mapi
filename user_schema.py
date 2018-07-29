@@ -1,9 +1,9 @@
-from schema import Schema, public, current_user, read_only, default, \
+from schema import Schema, current_user, read_only, default, \
      required, is_owner, now, current_user_is, never
-from api import has_role
+from api import has_role, is_logged
 
 plain_schema = {
-    "__get_default": public,
+    "__get_default": is_logged,
     "__set_default": is_owner,
     "tags": {
         "type": list,
@@ -30,7 +30,7 @@ plain_schema = {
     "__ownership": False,
     "__set_document": is_owner,
     "__set_default": is_owner,
-    "__get_default": public,
+    "__get_default": is_logged,
     "__owners": {
         "type": list,
         "set": read_only,
@@ -61,11 +61,6 @@ plain_schema = {
         "type": str,
         "get": never,
         "set": never
-    },
-    "invited": {
-        "type": list,
-        "set": public,
-        "get": public
     },
     "tags": {
         "type": list

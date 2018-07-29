@@ -489,6 +489,93 @@ class TestPutMethods(unittest.TestCase):
         value = A.put('a.b', {'a': {}}, 'hello :)')    
         self.assertEqual(value, 'hello :)')
 
+    def test_schema_path_push_simple(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': list,
+                'push': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {'a': [1, 2, 3]}, 40, False, True)    
+        self.assertTrue(value)
+
+    def test_schema_path_push_simple_forbidden(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': list,
+                'push': never
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(SetError):
+            A.put('a', {'a': [1, 2, 3]}, 40, False, True)    
+
+    def test_schema_path_push(self):
+        schema_plain = {
+            'b': {
+                'type': str,
+                'set': public
+            }
+        }
+        B = Schema(schema_plain)
+        
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': [B],
+                'push': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {'a': [{'b': 'hola'}]}, {'b': 'mundo'}, False, True)    
+        self.assertEqual(value, {'b': 'mundo'})
+
+    def test_schema_path_pull_simple(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': list,
+                'pull': public,
+                'set': public
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        value = A.put('a', {'a': [1, 2, 3]}, '', True)    
+        self.assertTrue(value)
+
+    def test_schema_path_pull_simple_forbidden(self):
+        schema_plain = {
+            '__set_document': public, 
+            '__set_default': never,
+            'a': {
+                'type': list,
+                'set': public,
+                'pull': never
+            }
+        }
+
+        A = Schema(schema_plain)
+
+        with self.assertRaises(SetError):
+            A.put('a', {'a': [1, 2, 3]}, '', True)
+        #self.assertFalse(A.put('a', {'a': [1, 2, 3]}, '', True))    
+        
+
     def test_schema_path_pull(self):
         schema_plain = {
             'b': {
@@ -503,7 +590,8 @@ class TestPutMethods(unittest.TestCase):
             '__set_default': never,
             'a': {
                 'type': [B],
-                'set': public
+                #'set': public,
+                'pull': public
             }
         }
 
@@ -526,7 +614,7 @@ class TestPutMethods(unittest.TestCase):
             '__set_default': never,
             'a': {
                 'type': [B],
-                'set': never
+                'pull': never
             }
         }
 

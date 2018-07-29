@@ -139,7 +139,7 @@ class Schema:
                 ret[key] = val
         return ret
 
-    def put(self, path, doc, value, pull=False):
+    def put(self, path, doc, value, pull=False, push=False):
         root_doc = doc
         schema = self.schema
         s = schema.get('__set_document', never)
@@ -169,19 +169,34 @@ class Schema:
                 validation = schema[key].get('validation', validation)
                 computed = schema[key].get('computed')
                 to_set = schema[key].get('set', set_default)
+                can_pull = schema[key].get('pull', never)
+                can_push = schema[key].get('push', never)
                 schema = schema[key]['type']
                 
-            if not to_set(root_doc):
+            if not pull and not push and not to_set(root_doc):
                 raise SetError('no se puede setear, set')   
             if (schema.__class__ == Schema or type(schema) is list) and key != last:
                 try:                
                     doc = doc[key]
                 except KeyError:
                     raise PathError('path does not exist')
+            if pull and not can_pull(doc, root_doc):
+                raise SetError('no se puede setear, pull')    
         
+        if schema is list:
+            if pull and can_pull(doc, root_doc):
+                return True
+            elif push and not can_push(doc, root_doc):
+                raise SetError('no se puede setear, push')
+            elif push and validation(value):
+                return value
+            elif pull or push:
+                raise SetError('no se puede setear, pull-push')
         if type(schema) is list:
             if pull:
                 return True
+            if push and not can_push(doc, root_doc):
+                raise SetError('no se puede setear, push')
             schema = schema[0]
         if schema.__class__ == Schema:
             set_default = schema.schema.get('__set_default', never)
@@ -207,13 +222,12 @@ class Schema:
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
-        else:
+        else:  
             if not to_set(root_doc):
                 raise SetError('no se puede setear, set')
             if computed is not None:
                 value = computed(value) 
             
-            ##if schema == type(value) and validation(value):
             if isinstance(value, schema) and validation(value):
                 return value
             else:

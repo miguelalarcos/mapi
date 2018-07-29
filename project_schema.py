@@ -1,6 +1,6 @@
-from schema import Schema, public, read_only, default, required,\
+from schema import Schema, read_only, default, required,\
                    is_owner, now
-from api import has_role, current_user_id, current_user
+from api import has_role, current_user_id, current_user, is_logged
 
 plain_schema = {
     "__get_default": is_owner,
@@ -37,7 +37,7 @@ def is_participant(doc):
 
 plain_schema = {
     "__ownership": False,
-    "__set_document": public,
+    "__set_document": is_owner,
     "__set_default": is_owner,
     "__owners": { 
         "type": list,
@@ -71,14 +71,28 @@ plain_schema = {
     },
     "participants": {
         "type": list,
-        "initial": lambda ctx: [current_user()]
+        "initial": lambda ctx: [current_user()],
+        "push": lambda v, doc: is_owner or current_user() in doc['invited'],
+        "pull": lambda v, doc: current_user() in doc['participants']
     },
     "solicitations": {
         "type": list,
         "initial": lambda ctx: [],
-        "set": public,
-        "get": public
-    }
+        "push": is_logged,
+        "pull": lambda v, doc: is_owner() or current_user() == v
+    },
+    "invited": {
+        "type": list,
+        "initial": lambda ctx: [],
+        "push": is_owner,
+        "pull": lambda v, doc: is_owner() or current_user() == v
+    },
+    "unread": {
+        "type": list,
+        "initial": lambda ctx: [],
+        "push": is_participant,
+        "pull": is_participant
+    },
     "messages": {
         "type": [Message],
         "get": is_participant,

@@ -17,6 +17,11 @@ def after_put(route):
         return helper
     return decorator
 
+def is_logged(*args):
+    jwt_token = request.headers.get('Authorization')
+    jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    return True
+
 def current_user(*args): 
     jwt_token = request.headers.get('Authorization')
     jwt_payload = jwt.decode(jwt_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -76,22 +81,22 @@ def catching(f):
             response.status = 500
             print('none doc error')
             return {'error': 'none doc error'}
-        #except SetError:
-        #    response.status = 500
-        #    print('set error')
-        #    return {'error': 'set error'}
-        #except ValidationError:
-        #    response.status = 500
-        #    print('validation error')
-        #    return {'error': 'validation error'}
-        #except PathError:
-        #    response.status = 500
-        #    print('path error')
-        #    return {'error': 'path error'}
-        #except Exception:
-        #    response.status = 500
-        #    print('error')
-        #    return {'error': 'error'}
+        except SetError:
+            response.status = 500
+            print('set error')
+            return {'error': 'set error'}
+        except ValidationError:
+            response.status = 500
+            print('validation error')
+            return {'error': 'validation error'}
+        except PathError:
+            response.status = 500
+            print('path error')
+            return {'error': 'path error'}
+        except Exception:
+            response.status = 500
+            print('error')
+            return {'error': 'error'}
         
     return helper
 
@@ -99,7 +104,7 @@ def api_get(route, collection, schema):
     def decorator(f):
         @get(route)
         @returns_json
-        @catching
+        #@catching
         def helper(id):
             response.status = 200
             id = ObjectId(id)
@@ -122,7 +127,7 @@ def api_get_unique(route, collection, schema):
     def decorator(f):
         @get(route)
         @returns_json
-        @catching
+        #@catching
         def helper(unique, value):
             response.status = 200
             id = ObjectId(id)
@@ -130,7 +135,7 @@ def api_get_unique(route, collection, schema):
             filter[unique] = value
             if schema['__ownership']:
                 filter.update({'__owners': current_user()})
-            proj = f(id)
+            proj = f()
             if proj:
                 doc = collection.find_one(filter, proj)
             else:
@@ -142,11 +147,50 @@ def api_get_unique(route, collection, schema):
         return helper
     return decorator
 
+def api_put_v2(route, collection, schema):
+    def decorator(f):
+        @put(route)
+        @returns_json
+        #@catching
+        def helper(id):
+            response.status = 201
+            id = ObjectId(id)
+            old_doc = collection.find_one({"_id": id})
+            if old_doc is None:
+                raise NoneDocError('no document found')
+            js = current_payload()
+            payload = {}
+            for k in js:
+                if k in ('$set', '$push', '$addToSet'):
+                    payload[k] = {}
+                    for path, value in js[k].items():
+                        doc = schema.put(path, old_doc, value)
+                        payload[k][path] = doc
+                elif k == '$pull':
+                    payload[k] = {}    
+                    for path, value in js[k].items():
+                        if schema.put(path, old_doc, "", True):
+                            payload[k][path] = value
+            collection.update_one({"_id": id}, payload)
+            proj = f()
+            if proj:
+                doc = collection.find_one({"_id": id}, proj)
+            else:
+                doc = collection.find_one({"_id": id})
+            doc['_id'] = str(id)
+            doc = schema.get(doc)
+            hook = after_put_hooks.get(route)
+            if hook:
+                hook(doc)
+            return doc
+        return helper
+    return decorator
+
 def api_put(route, collection, schema):
     def decorator(f):
         @put(route)
         @returns_json
-        @catching
+        #@catching
         def helper(id):
             response.status = 201
             id = ObjectId(id)
@@ -157,6 +201,8 @@ def api_put(route, collection, schema):
             t = '$set'
             if js['type'] == '$push':
                 t = '$push'
+            elif js['type'] == '$addToSet':
+                t = '$addToSet'
             elif js['type'] == '$pull':
                 t = '$pull'
             mod = {}
@@ -187,7 +233,7 @@ def api_post(route, collection, schema):
     def decorator(f):
         @post(route)
         @returns_json
-        @catching
+        #@catching
         def helper():            
             response.status = 201
             payload = current_payload()
@@ -204,18 +250,18 @@ def api_get_many(route, collection, schema, max_limit):
     def decorator(f):
         @get(route)
         @returns_json
-        @catching
+        #@catching
         def helper(offset, limit):
             response.status = 200
             filter = {}
             if schema['__ownership']:
                 filter.update({'__owners': current_user()})
             limit = min(limit, max_limit)
-            proj, filter = f(request.params, filter)
+            proj, filter, order = f(request.params, filter)
             if proj:
-                docs = collection.find(filter, proj).limit(limit).skip(offset)
+                docs = collection.find(filter, proj).sort(order).skip(offset).limit(limit)
             else:
-                docs = collection.find(filter).limit(limit).skip(offset)
+                docs = collection.find(filter).sort(order).skip(offset).limit(limit)
             ret = []
             for doc in docs:
                 doc['_id'] = str(doc['_id'])

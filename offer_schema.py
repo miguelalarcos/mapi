@@ -11,8 +11,7 @@ plain_schema = {
     "__set_document": is_owner,
     #"__create_document": has_role('offerer'),
     "__set_default": is_owner,
-    #"__get": public,
-    #"__set": is_owner,
+    "__get_default": public,
     "__owners": { 
         "type": list,
         "set": read_only,
