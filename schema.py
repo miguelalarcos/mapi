@@ -179,11 +179,9 @@ class Schema:
                 try:                
                     doc = doc[key]
                 except KeyError:
-                    raise PathError('path does not exist')
-            if pull and not can_pull(doc, root_doc):
-                raise SetError('no se puede setear, pull')    
+                    raise PathError('path does not exist')  
         
-        if schema is list:
+        if schema is list or type(schema) is list:
             if pull and can_pull(doc, root_doc):
                 return True
             elif push and not can_push(doc, root_doc):
@@ -192,12 +190,9 @@ class Schema:
                 return value
             elif pull or push:
                 raise SetError('no se puede setear, pull-push')
-        if type(schema) is list:
-            if pull:
-                return True
-            if push and not can_push(doc, root_doc):
-                raise SetError('no se puede setear, push')
-            schema = schema[0]
+            if type(schema) is list:
+                schema = schema[0]
+        
         if schema.__class__ == Schema:
             set_default = schema.schema.get('__set_default', never)
             keys = [k  for k in schema.schema.keys() if k not in self.kw] #  ['__set_document']]

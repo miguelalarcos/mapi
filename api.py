@@ -164,7 +164,10 @@ def api_put_v2(route, collection, schema):
                 if k in ('$set', '$push', '$addToSet'):
                     payload[k] = {}
                     for path, value in js[k].items():
-                        doc = schema.put(path, old_doc, value)
+                        if k in ('$push', '$addToSet'):
+                            doc = schema.put(path, old_doc, value, False, True)
+                        else:
+                            doc = schema.put(path, old_doc, value)
                         payload[k][path] = doc
                 elif k == '$pull':
                     payload[k] = {}    

@@ -621,7 +621,7 @@ class TestPutMethods(unittest.TestCase):
         A = Schema(schema_plain)
 
         with self.assertRaises(SetError):
-            A.put('a', {'a': [{'b': 'hola'}]}, '', True)    
+            A.put('a', {'a': [{'b': '777'}]}, '', True)    
 
     def test_schema_path_set_computed(self):
         schema_plain = {
