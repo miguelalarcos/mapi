@@ -18,7 +18,7 @@ from pymongo import ASCENDING
 
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv('.env')
 
 #MONGO_URL = os.getenv("MONGO_URL")
 #DATA_BASE= os.getenv("DATA_BASE")
@@ -31,6 +31,10 @@ CLIENT_SECRET_GITHUB = os.getenv("CLIENT_SECRET_GITHUB")
 #db = client[DATA_BASE]
 
 import project_routes
+
+@get('/')
+def index():
+    return ':)'
 
 @route('/api/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
