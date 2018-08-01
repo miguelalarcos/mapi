@@ -139,7 +139,13 @@ class Schema:
                 ret[key] = val
         return ret
 
-    def put(self, path, doc, value, pull=False, push=False):
+    def put(self, path, doc, value, type_='$set'):
+        pull = False
+        push = False
+        if type_ == '$pull':
+            pull = True
+        elif type_ == '$push' or type_ == '$addToSet':
+            push = True
         root_doc = doc
         schema = self.schema
         s = schema.get('__set_document', never)
@@ -181,15 +187,15 @@ class Schema:
                 except KeyError:
                     raise PathError('path does not exist')  
         
+        flag_list = False
         if schema is list or type(schema) is list:
+            flag_list = True
             if pull and can_pull(doc, root_doc):
-                return True
+                return value
             elif push and not can_push(doc, root_doc):
                 raise SetError('no se puede setear, push')
-            elif push and validation(value):
-                return value
-            elif pull or push:
-                raise SetError('no se puede setear, pull-push')
+            elif pull:
+                raise SetError('no se puede setear, pull')
             if type(schema) is list:
                 schema = schema[0]
         
@@ -210,14 +216,16 @@ class Schema:
                 except TypeError:
                     raise PathError('type error path does not exist', k)
                 
-                if not sett(root_doc): #schema[k].get('set', set_default)(root_doc):
+                if not sett(root_doc): 
                     raise SetError('no se puede setear, set')
                 if 'computed' in schema[k]:
-                    value[k] = schema[k]['computed'](value) #(value)   
+                    value[k] = schema[k]['computed'](value)    
                 if not schema[k]['type'] == type(value[k]) and not schema[k].get('validation', public)(value[k]):
                     raise ValidationError('no se puede setear, validation')
             return value
-        else:  
+        else:
+            if push and flag_list: # and can_push(doc, root_doc):
+                return value  
             if not to_set(root_doc):
                 raise SetError('no se puede setear, set')
             if computed is not None:

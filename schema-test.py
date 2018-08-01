@@ -501,7 +501,7 @@ class TestPutMethods(unittest.TestCase):
 
         A = Schema(schema_plain)
 
-        value = A.put('a', {'a': [1, 2, 3]}, 40, False, True)    
+        value = A.put('a', {'a': [1, 2, 3]}, 40, "$push")    
         self.assertTrue(value)
 
     def test_schema_path_push_simple_forbidden(self):
@@ -517,7 +517,7 @@ class TestPutMethods(unittest.TestCase):
         A = Schema(schema_plain)
 
         with self.assertRaises(SetError):
-            A.put('a', {'a': [1, 2, 3]}, 40, False, True)    
+            A.put('a', {'a': [1, 2, 3]}, 40, '$push')    
 
     def test_schema_path_push(self):
         schema_plain = {
@@ -539,7 +539,7 @@ class TestPutMethods(unittest.TestCase):
 
         A = Schema(schema_plain)
 
-        value = A.put('a', {'a': [{'b': 'hola'}]}, {'b': 'mundo'}, False, True)    
+        value = A.put('a', {'a': [{'b': 'hola'}]}, {'b': 'mundo'}, '$push')    
         self.assertEqual(value, {'b': 'mundo'})
 
     def test_schema_path_pull_simple(self):
@@ -555,8 +555,8 @@ class TestPutMethods(unittest.TestCase):
 
         A = Schema(schema_plain)
 
-        value = A.put('a', {'a': [1, 2, 3]}, '', True)    
-        self.assertTrue(value)
+        value = A.put('a', {'a': [1, 2, 3]}, 1, '$pull')    
+        self.assertEqual(value, 1)
 
     def test_schema_path_pull_simple_forbidden(self):
         schema_plain = {
@@ -572,8 +572,7 @@ class TestPutMethods(unittest.TestCase):
         A = Schema(schema_plain)
 
         with self.assertRaises(SetError):
-            A.put('a', {'a': [1, 2, 3]}, '', True)
-        #self.assertFalse(A.put('a', {'a': [1, 2, 3]}, '', True))    
+            A.put('a', {'a': [1, 2, 3]}, 1, '$pull')    
         
 
     def test_schema_path_pull(self):
@@ -597,8 +596,8 @@ class TestPutMethods(unittest.TestCase):
 
         A = Schema(schema_plain)
 
-        value = A.put('a', {'a': [{'b': 'hola'}]}, '', True)    
-        self.assertTrue(value)
+        value = A.put('a', {'a': [{'b': 'hola'}]}, {'b': 'hola'}, '$pull')    
+        self.assertEqual(value, {'b': 'hola'})
 
     def test_schema_path_pull_raises_error(self):
         schema_plain = {
@@ -621,7 +620,7 @@ class TestPutMethods(unittest.TestCase):
         A = Schema(schema_plain)
 
         with self.assertRaises(SetError):
-            A.put('a', {'a': [{'b': '777'}]}, '', True)    
+            A.put('a', {'a': [{'b': '777'}]}, {'b': '777'}, '$pull')    
 
     def test_schema_path_set_computed(self):
         schema_plain = {
