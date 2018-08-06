@@ -1,11 +1,15 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from api import after_put, returns_json, api_get, api_put, api_post, api_get_unique, api_get_many, current_user, api_aggregation, returns_json
-from bottle import run, debug, default_app, request, hook, response, route, get, put
+from bottle import run, debug, default_app, request, response, route, get
 #from pymongo import MongoClient
 from offer_schema import OfferSchema
 from candidature_schema import CandidatureSchema
 #from project_schema import ProjectSchema
 from tag_schema import TagSchema
 from user_schema import UserSchema
+from message_schema import MessageSchema
 import jwt 
 import json
 from bson.objectid import ObjectId
@@ -14,35 +18,22 @@ import os
 from api import ArgumentError
 import requests
 from db import db
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 
 
-from dotenv import load_dotenv
-load_dotenv('.env')
-
-#MONGO_URL = os.getenv("MONGO_URL")
-#DATA_BASE= os.getenv("DATA_BASE")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 CLIENT_ID_GITHUB = os.getenv("CLIENT_ID_GITHUB")
 CLIENT_SECRET_GITHUB = os.getenv("CLIENT_SECRET_GITHUB")
 
-#client = MongoClient(MONGO_URL)
-#db = client[DATA_BASE]
-
 import project_routes
+import messages_routes
 
 @get('/')
 def index():
     return ':)'
 
 @route('/api/<:re:.*>', method='OPTIONS')
-def getRoot(*args, **kwargs):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
-
-@route('/api/v2/<:re:.*>', method='OPTIONS')
 def getRoot(*args, **kwargs):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
@@ -129,6 +120,28 @@ def get_candidate(id):
 @api_post('/api/candidatures', db.candidature, CandidatureSchema)
 def post_candidature():
     pass
+
+@get('/api/fake-login')
+@returns_json
+def get_user():
+    login = request.params['login']
+    doc = db.user.find_one({'login': login}, {'password': 0})  
+    if doc:  
+        doc['jwt'] = (jwt.encode({'user': login, 'user_id': str(doc['_id'])}, JWT_SECRET, algorithm=JWT_ALGORITHM)).decode()
+        doc['_id'] = str(doc['_id'])
+        return doc
+    else:
+        raise ArgumentError('login not in params')
+
+@get('/api/tags')
+@returns_json
+def get_tags():
+    value = request.params['value']
+    url = 'https://api.stackexchange.com/2.2/tags?page=1&pagesize=20&order=desc&sort=popular&site=stackoverflow&inname=' + value
+    res = requests.get(url)
+    data = json.loads(res.text)
+    print(data)
+    return [x['name'] for x in data['items']]
 
 @get('/api/login')
 @returns_json

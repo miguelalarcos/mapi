@@ -8,12 +8,21 @@ JWT_SECRET = 'secret'
 JWT_ALGORITHM = 'HS256'
 
 after_put_hooks = {}
+before_post_hooks = {}
 
 def after_put(route):
     def decorator(f):
         def helper(*args, **kwargs):
             f(*args, **kwargs)
         after_put_hooks[route] = helper
+        return helper
+    return decorator
+
+def before_post(route):
+    def decorator(f):
+        def helper(*args, **kwargs):
+            f(*args, **kwargs)
+        before_post_hooks[route] = helper
         return helper
     return decorator
 
@@ -232,6 +241,9 @@ def api_post(route, collection, schema):
         def helper():            
             response.status = 201
             payload = current_payload()
+            hook = before_post_hooks.get(route)
+            if hook:
+                payload = hook(payload)
             ctx = f() or {}
             payload = schema.post(payload, ctx)
             _id = collection.insert_one(payload).inserted_id

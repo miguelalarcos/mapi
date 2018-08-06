@@ -1,4 +1,5 @@
 from api import api_get, api_put_v2, api_post, api_get_many, ArgumentError
+from schema import current_user
 from project_schema import ProjectSchema
 from db import db
 from pymongo import ASCENDING
@@ -17,6 +18,11 @@ def get_many_search_projects(params, filter):
         filter['tags'] = {"$in": params['tags'].split(',')}
     else: 
         raise ArgumentError('tags not in params')
+    return None, filter, [("created_at", ASCENDING)]
+
+@api_get_many('/api/my-projects/<offset:int>/<limit:int>', db.project, ProjectSchema, max_limit=10)
+def get_many_search_projects(params, filter):
+    filter['participants'] = current_user()
     return None, filter, [("created_at", ASCENDING)]
 
 @api_post('/api/projects',db.project, ProjectSchema)

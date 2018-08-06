@@ -50,11 +50,13 @@ plain_schema = {
     },
     "title": {
         "type": str,
-        "validation": lambda v: len(v) <= 100
+        "validation": lambda v: len(v) <= 100,
+        "initial": default("")
     },
     "description": {
         "type": str,
-        "validation": lambda v: len(v) <= 3000
+        "validation": lambda v: len(v) <= 3000,
+        "initial": default("")
     },
     "tags": {
         "type": list,
@@ -72,7 +74,7 @@ plain_schema = {
     "participants": {
         "type": list,
         "initial": lambda ctx: [current_user()],
-        "push": lambda v, doc: is_owner or current_user() in doc['invited'],
+        "push": lambda v, doc: is_owner() or current_user() in doc['invited'],
         "pull": lambda v, doc: current_user() in doc['participants']
     },
     "solicitations": {
@@ -93,11 +95,11 @@ plain_schema = {
         "push": is_participant,
         "pull": is_participant
     },
-    "messages": {
-        "type": [Message],
-        "get": is_participant,
-        "set": is_participant
-    },
+    #"messages": {
+    #    "type": [Message],
+    #    "get": is_participant,
+    #    "set": is_participant
+    #},
     "created_at": {
         "type": float,
         "initial": now,
